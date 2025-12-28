@@ -11,7 +11,7 @@ distributor     = tf4fun
 distributor_url = https://github.com/tf4fun
 
 desktop_uidir           = ui
-desktop_applaunchname   = fnos.onlyoffice-connector.settings
+desktop_applaunchname   = onlyoffice.settings
 
 service_port    = 10099
 checkport       = true
