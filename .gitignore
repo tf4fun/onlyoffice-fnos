@@ -6,7 +6,7 @@ references/
 
 # Build output
 *.fpk
-fnos.onlyoffice-connector/app/target/
+fnos.onlyoffice-connector/app/server/
 
 # Go
 *.exe
