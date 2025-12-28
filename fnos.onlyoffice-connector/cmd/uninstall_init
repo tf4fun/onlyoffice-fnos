@@ -1,0 +1,3 @@
+#!/bin/bash
+# Pre-uninstallation script
+exit 0

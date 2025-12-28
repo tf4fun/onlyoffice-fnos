@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - OnlyOffice Editor</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="editor-fullscreen">
+    <div id="editor-container"></div>
+    <script src="{{.DocumentServerURL}}/web-apps/apps/api/documents/api.js"></script>
+    <script>new DocsAPI.DocEditor("editor-container", {{.ConfigJSON}});</script>
+</body>
+</html>

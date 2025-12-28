@@ -1,0 +1,295 @@
+/* Base styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Container */
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.container-sm {
+    max-width: 500px;
+}
+
+.container-center {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Typography */
+h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+h1.sm {
+    font-size: 20px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 24px;
+}
+
+label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.input-field {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #4a90d9;
+}
+
+.help-text {
+    font-size: 12px;
+    color: #888;
+    margin-top: 6px;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: #4a90d9;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #3a7bc8;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background: #e5e5e5;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.btn-lg {
+    padding: 14px 20px;
+}
+
+/* Messages */
+.message {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* File info box */
+.file-info {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.file-name {
+    font-weight: 500;
+    word-break: break-all;
+    margin-bottom: 8px;
+}
+
+/* Format badges */
+.format-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.format-badge.source {
+    background: #ffeeba;
+    color: #856404;
+}
+
+.format-badge.target {
+    background: #c3e6cb;
+    color: #155724;
+}
+
+.arrow {
+    margin: 0 8px;
+    color: #999;
+}
+
+/* Description text */
+.description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 24px;
+}
+
+/* Links */
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    color: #4a90d9;
+}
+
+/* Error page */
+.error-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    background: #f8d7da;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.error-icon svg {
+    width: 40px;
+    height: 40px;
+    fill: #721c24;
+}
+
+.error-code {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 16px;
+}
+
+.error-message {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.error-details {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 24px;
+    text-align: left;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.help-text-center {
+    margin-top: 24px;
+    font-size: 13px;
+    color: #888;
+    text-align: center;
+}
+
+.help-text-center a {
+    color: #4a90d9;
+    text-decoration: none;
+}
+
+.help-text-center a:hover {
+    text-decoration: underline;
+}
+
+/* Editor page */
+.editor-fullscreen {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+#editor-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Utility */
+.text-center {
+    text-align: center;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.mb-12 {
+    margin-bottom: 12px;
+}
+
+.gap-5 {
+    gap: 5px;
+}

@@ -1,0 +1,17 @@
+appname=fnos.onlyoffice-connector
+version=1.0.0
+display_name=OnlyOffice 连接器
+desc=在浏览器中直接编辑 NAS 上的 Office 文档。支持 DOCX、XLSX、PPTX 等格式的在线编辑，以及 DOC、XLS、PPT、ODT、ODS、ODP 等格式的转换和查看。
+arch=x86_64
+source=thirdparty
+
+maintainer=Developer
+maintainer_url=https://github.com/onlyoffice
+
+os_min_version=0.9.0
+
+desktop_uidir=ui
+desktop_applaunchname=fnos.onlyoffice-connector.settings
+
+service_port=8080
+checkport=true

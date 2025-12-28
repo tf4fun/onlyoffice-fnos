@@ -1,0 +1,3 @@
+#!/bin/bash
+# Pre-installation script
+exit 0

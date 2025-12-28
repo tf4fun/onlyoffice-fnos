@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# OnlyOffice Connector - fnOS Application Entry Script
+# Handles start, stop, and status commands for the application
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+BINARY="${TRIM_APPDEST}/server/onlyoffice-connector"
+CONFIG_FILE="${TRIM_PKGVAR}/config.json"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
+}
+
+check_process() {
+    local pid=$1
+    if kill -0 "${pid}" 2>/dev/null; then
+        return 0  # process exist
+    else
+        return 1  # process not exist
+    fi
+}
+
+status() {
+    if [ -f "${PID_FILE}" ]; then
+        pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
+        if check_process "${pid}"; then
+            return 0
+        else
+            # Process is not running but pidfile exists - clean it up
+            rm -f "${PID_FILE}"
+        fi
+    fi
+    return 1
+}
+
+start_process() {
+    if status; then
+        log_msg "OnlyOffice Connector is already running"
+        return 0
+    fi
+
+    log_msg "Starting OnlyOffice Connector..."
+    log_msg "Binary: $BINARY"
+    log_msg "Config: $CONFIG_FILE"
+    log_msg "Port: ${TRIM_SERVICE_PORT:-8080}"
+    log_msg "Data: ${TRIM_PKGVAR}"
+
+    # Ensure var directory exists
+    mkdir -p "${TRIM_PKGVAR}"
+
+    # Start the application in background
+    "${BINARY}" \
+        -config "$CONFIG_FILE" \
+        -port "${TRIM_SERVICE_PORT:-8080}" \
+        -data "${TRIM_PKGVAR}" \
+        >> "$LOG_FILE" 2>&1 &
+
+    # Save PID
+    printf "%s" "$!" > "${PID_FILE}"
+
+    # Wait a moment and verify it started
+    sleep 1
+    if status; then
+        log_msg "OnlyOffice Connector started successfully (PID: $(cat $PID_FILE))"
+        return 0
+    else
+        log_msg "Failed to start OnlyOffice Connector"
+        rm -f "${PID_FILE}"
+        return 1
+    fi
+}
+
+stop_process() {
+    log_msg "Stopping OnlyOffice Connector..."
+
+    if [ -r "${PID_FILE}" ]; then
+        pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
+
+        log_msg "pid=${pid}"
+        if ! check_process "${pid}"; then
+            # process not exist, delete pidfile
+            rm -f "${PID_FILE}"
+            log_msg "Process not running, removed stale PID file"
+            return 0
+        fi
+
+        log_msg "Sending TERM signal to PID:${pid}..."
+        kill -TERM ${pid} >> ${LOG_FILE} 2>&1
+
+        local count=0
+        while check_process "${pid}" && [ $count -lt 10 ]; do
+            sleep 1
+            count=$((count + 1))
+            log_msg "Waiting for process to terminate... (${count}s/10s)"
+        done
+
+        if check_process "${pid}"; then
+            log_msg "Sending KILL signal to PID:${pid}..."
+            kill -KILL "${pid}"
+            sleep 1
+        fi
+
+        rm -f "${PID_FILE}"
+        log_msg "OnlyOffice Connector stopped"
+    else
+        log_msg "OnlyOffice Connector is not running (no PID file)"
+    fi
+
+    return 0
+}
+
+case $1 in
+start)
+    start_process
+    ;;
+stop)
+    stop_process
+    ;;
+status)
+    if status; then
+        exit 0
+    else
+        exit 3
+    fi
+    ;;
+*)
+    exit 1
+    ;;
+esac

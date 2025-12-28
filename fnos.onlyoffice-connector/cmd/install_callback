@@ -1,0 +1,7 @@
+#!/bin/bash
+# Post-installation script
+# Create default config if not exists
+if [ ! -f "${TRIM_PKGVAR}/config.json" ]; then
+    echo '{"documentServerUrl":"","documentServerSecret":""}' > "${TRIM_PKGVAR}/config.json"
+fi
+exit 0

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>格式转换 - {{.FileName}}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body class="container-center">
+    <div class="container container-sm">
+        <h1 class="sm">文档格式转换</h1>
+        
+        <div id="error">
+            {{if .Error}}
+            <div class="message error">{{.Error}}</div>
+            {{end}}
+        </div>
+        
+        <div class="file-info">
+            <div class="file-name">{{.FileName}}</div>
+            <div>
+                <span class="format-badge source">{{.SourceFormat}}</span>
+                <span class="arrow">→</span>
+                <span class="format-badge target">{{.TargetFormat}}</span>
+            </div>
+        </div>
+        
+        <p class="description">该文件格式 ({{.SourceFormat}}) 不支持直接编辑。您可以选择以下操作：</p>
+        
+        <form hx-post="/convert" hx-target="#error" hx-swap="innerHTML">
+            <input type="hidden" name="path" value="{{.FilePath}}">
+            <button type="submit" class="btn btn-primary btn-block btn-lg mb-12">转换为 {{.TargetFormat}} 并编辑</button>
+        </form>
+        
+        <a href="/editor?path={{.FilePathEncoded}}&mode=view" class="btn btn-secondary btn-block btn-lg">以只读模式查看</a>
+        
+        <a href="/" class="back-link">← 返回设置</a>
+    </div>
+</body>
+</html>
