@@ -1,14 +1,79 @@
 <!DOCTYPE html>
-<html lang="{{.Lang}}">
+<html lang="{{.Lang}}" class="editor-fullscreen">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>{{.Title}} - OnlyOffice Editor</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="editor-fullscreen">
-    <div id="editor-container"></div>
+<body>
+    <div id="editor-loading" class="editor-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading editor...</div>
+        <button class="cancel-btn" onclick="window.close()">Cancel</button>
+    </div>
+    <div id="editor-container" style="opacity: 0;"></div>
     <script src="{{.DocumentServerURL}}/web-apps/apps/api/documents/api.js"></script>
-    <script>new DocsAPI.DocEditor("editor-container", {{.ConfigJSON}});</script>
+    <script>
+        var docEditor;
+        var config = {{.ConfigJSON}};
+
+        // Called when editor is ready
+        var onAppReady = function() {
+            console.log("Document editor ready");
+            var loader = document.getElementById('editor-loading');
+            var editor = document.getElementById('editor-container');
+            
+            // Fade out loader
+            loader.style.opacity = '0';
+            setTimeout(function() {
+                loader.style.display = 'none';
+            }, 250);
+            
+            // Fade in editor
+            editor.style.opacity = '1';
+        };
+
+        // Called when close is requested
+        var onRequestClose = function() {
+            if (window.opener) {
+                window.close();
+                return;
+            }
+            docEditor.destroyEditor();
+        };
+
+        // Called on error
+        var onError = function(event) {
+            console.error("Editor error:", event);
+            onAppReady(); // Still show editor on error
+        };
+
+        // Fix size for mobile devices
+        var fixSize = function() {
+            var container = document.getElementById('editor-container');
+            if (container) {
+                container.style.height = window.innerHeight + 'px';
+            }
+        };
+
+        // Merge events with config
+        config.events = config.events || {};
+        config.events.onAppReady = onAppReady;
+        config.events.onRequestClose = onRequestClose;
+        config.events.onError = onError;
+
+        // Initialize editor
+        var connectEditor = function() {
+            docEditor = new DocsAPI.DocEditor('editor-container', config);
+            fixSize();
+        };
+
+        // Event listeners
+        window.addEventListener('load', connectEditor);
+        window.addEventListener('resize', fixSize);
+    </script>
 </body>
 </html>

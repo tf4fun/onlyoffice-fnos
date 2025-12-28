@@ -265,16 +265,106 @@ label {
     text-decoration: underline;
 }
 
-/* Editor page */
-.editor-fullscreen {
+/* Editor page - Best practices from onlyoffice-box and onlyoffice-pipedrive */
+html.editor-fullscreen,
+html.editor-fullscreen body {
     height: 100%;
     width: 100%;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
+    background: #fff;
 }
 
-#editor-container {
-    width: 100%;
-    height: 100%;
+.editor-fullscreen #editor-container {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    transition: opacity 0.25s ease-in-out;
+}
+
+/* Editor loading spinner - OnlyOffice style with conic-gradient */
+.editor-loading {
+    position: fixed;
+    z-index: 1000;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background: #fff;
+    transition: opacity 0.25s ease-in-out;
+}
+
+.editor-loading .spinner {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    height: 56px;
+    width: 56px;
+    box-sizing: border-box;
+    background: conic-gradient(from 90deg at 50% 50%, rgba(255, 255, 255, 0.0001) 0deg, #4a90d9 359.96deg, rgba(255, 255, 255, 0.0001) 360deg);
+    border-radius: 56px;
+    animation: spin 1s linear infinite;
+}
+
+.editor-loading .spinner::before {
+    content: "";
+    height: 40px;
+    width: 40px;
+    background: #fff;
+    border-radius: 48px;
+}
+
+.editor-loading .spinner::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    width: 8px;
+    background: #4a90d9;
+    border-radius: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.editor-loading .loading-text {
+    margin-top: 16px;
+    color: #666;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Cancel button for loading state */
+.editor-loading .cancel-btn {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    padding: 12px 24px;
+    background-color: #4a90d9;
+    border-radius: 6px;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in;
+}
+
+.editor-loading .cancel-btn:hover {
+    background-color: #3a7bc8;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Utility */
