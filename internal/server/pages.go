@@ -414,7 +414,7 @@ func (s *Server) buildEditorConfig(req *editorConfigRequest) (map[string]interfa
 func (s *Server) buildCallbackURL(filePath string) string {
 	baseURL := s.baseURL
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:10099"
 	}
 	return baseURL + "/callback?path=" + url.QueryEscape(filePath)
 }
@@ -449,7 +449,7 @@ func (s *Server) renderSettingsPageFallback(w http.ResponseWriter, data *Setting
         <div class="form-group">
             <label>Document Server 地址</label>
             <div class="input-row">
-                <input type="url" id="documentServerUrl" name="documentServerUrl" value="` + data.Settings.DocumentServerURL + `" placeholder="http://192.168.1.100:8080">
+                <input type="url" id="documentServerUrl" name="documentServerUrl" value="` + data.Settings.DocumentServerURL + `" placeholder="http://192.168.1.100:10099">
                 <button type="button" class="btn-secondary" hx-post="/api/settings/validate" hx-include="#documentServerUrl" hx-target="#status">测试连接</button>
             </div>
             <div id="status"></div>

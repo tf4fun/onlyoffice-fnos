@@ -177,7 +177,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 func (s *Server) buildDownloadURL(filePath string) string {
 	baseURL := s.baseURL
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:10099"
 	}
 	baseURL = strings.TrimSuffix(baseURL, "/")
 	return fmt.Sprintf("%s/download?path=%s", baseURL, url.QueryEscape(filePath))

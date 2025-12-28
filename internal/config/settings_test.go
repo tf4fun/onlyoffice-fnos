@@ -71,7 +71,7 @@ func TestSaveCreatesDirectory(t *testing.T) {
 	store := NewSettingsStore(tmpFile)
 
 	settings := &Settings{
-		DocumentServerURL:    "http://localhost:8080",
+		DocumentServerURL:    "http://localhost:10099",
 		DocumentServerSecret: "secret123",
 	}
 

@@ -69,7 +69,7 @@ func TestProperty3_DocumentSaveIntegrity(t *testing.T) {
 			FileService:   fileService,
 			FormatManager: formatManager,
 			JWTManager:    jwtManager,
-			BaseURL:       "http://localhost:8080",
+			BaseURL:       "http://localhost:10099",
 		})
 
 		// Create callback request with status 2 (saved)
@@ -174,7 +174,7 @@ func TestCallbackWithJWTVerification(t *testing.T) {
 		FileService:   file.NewService(tempDir, 0),
 		FormatManager: format.NewManager(),
 		JWTManager:    jwtManager,
-		BaseURL:       "http://localhost:8080",
+		BaseURL:       "http://localhost:10099",
 	})
 
 	// Test with missing token
@@ -282,7 +282,7 @@ func createTestServer(t *testing.T, tempDir string) *Server {
 		FileService:   file.NewService(tempDir, 0),
 		FormatManager: format.NewManager(),
 		JWTManager:    jwt.NewManager(),
-		BaseURL:       "http://localhost:8080",
+		BaseURL:       "http://localhost:10099",
 	})
 }
 

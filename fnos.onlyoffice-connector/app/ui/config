@@ -5,7 +5,7 @@
             "icon": "images/icon_{0}.png",
             "type": "iframe",
             "protocol": "http",
-            "port": "8080",
+            "port": "10099",
             "url": "/",
             "allUsers": false
         },
@@ -14,7 +14,7 @@
             "icon": "images/icon_{0}.png",
             "type": "iframe",
             "protocol": "http",
-            "port": "8080",
+            "port": "10099",
             "url": "/editor",
             "allUsers": true,
             "fileTypes": ["docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "pdf", "txt", "rtf", "csv"],

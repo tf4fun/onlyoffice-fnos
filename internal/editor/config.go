@@ -166,7 +166,7 @@ func (b *ConfigBuilder) generateDocumentKey(filePath string, modTime time.Time) 
 // buildDownloadURL builds the download URL for the document
 func (b *ConfigBuilder) buildDownloadURL(baseURL, filePath string) string {
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:10099"
 	}
 	// Ensure baseURL doesn't have trailing slash
 	baseURL = strings.TrimSuffix(baseURL, "/")
@@ -178,7 +178,7 @@ func (b *ConfigBuilder) buildDownloadURL(baseURL, filePath string) string {
 // buildCallbackURL builds the callback URL for document saving
 func (b *ConfigBuilder) buildCallbackURL(baseURL, filePath string) string {
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:10099"
 	}
 	// Ensure baseURL doesn't have trailing slash
 	baseURL = strings.TrimSuffix(baseURL, "/")

@@ -37,7 +37,7 @@ func TestProperty1_EditorConfigContainsValidDownloadURL(t *testing.T) {
 		pathParts[dirParts] = fileName + "." + ext
 		filePath := strings.Join(pathParts, "/")
 
-		baseURL := "http://localhost:8080"
+		baseURL := "http://localhost:10099"
 
 		fileInfo := &file.FileInfo{
 			Path:      filePath,
@@ -181,7 +181,7 @@ func TestProperty6_EditorConfigContainsUserInfo(t *testing.T) {
 			UserID:   userID,
 			UserName: userName,
 			Lang:     "en",
-			BaseURL:  "http://localhost:8080",
+			BaseURL:  "http://localhost:10099",
 		}
 
 		config, err := builder.BuildConfig(req)
@@ -238,7 +238,7 @@ func TestProperty8_EditorConfigContainsLanguageSetting(t *testing.T) {
 			UserID:   "user1",
 			UserName: "Test User",
 			Lang:     langInput,
-			BaseURL:  "http://localhost:8080",
+			BaseURL:  "http://localhost:10099",
 		}
 
 		config, err := builder.BuildConfig(req)
@@ -312,7 +312,7 @@ func TestBuildConfigUnsupportedFormat(t *testing.T) {
 		UserID:   "user1",
 		UserName: "Test User",
 		Lang:     "en",
-		BaseURL:  "http://localhost:8080",
+		BaseURL:  "http://localhost:10099",
 	}
 
 	_, err := builder.BuildConfig(req)
@@ -354,7 +354,7 @@ func TestBuildConfigEditMode(t *testing.T) {
 			UserID:   "user1",
 			UserName: "Test User",
 			Lang:     "en",
-			BaseURL:  "http://localhost:8080",
+			BaseURL:  "http://localhost:10099",
 		}
 
 		config, err := builder.BuildConfig(req)
@@ -395,7 +395,7 @@ func TestBuildConfigWithJWT(t *testing.T) {
 		UserID:    "user1",
 		UserName:  "Test User",
 		Lang:      "en",
-		BaseURL:   "http://localhost:8080",
+		BaseURL:   "http://localhost:10099",
 		JWTSecret: secret,
 	}
 

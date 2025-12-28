@@ -43,7 +43,7 @@ start_process() {
     log_msg "Starting OnlyOffice Connector..."
     log_msg "Binary: $BINARY"
     log_msg "Config: $CONFIG_FILE"
-    log_msg "Port: ${TRIM_SERVICE_PORT:-8080}"
+    log_msg "Port: ${TRIM_SERVICE_PORT:-10099}"
     log_msg "Data: ${TRIM_PKGVAR}"
 
     # Ensure var directory exists
@@ -52,7 +52,7 @@ start_process() {
     # Start the application in background
     "${BINARY}" \
         -config "$CONFIG_FILE" \
-        -port "${TRIM_SERVICE_PORT:-8080}" \
+        -port "${TRIM_SERVICE_PORT:-10099}" \
         -data "${TRIM_PKGVAR}" \
         >> "$LOG_FILE" 2>&1 &
 

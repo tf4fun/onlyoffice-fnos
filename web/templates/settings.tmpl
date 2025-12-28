@@ -16,7 +16,7 @@
                 <label for="documentServerUrl">Document Server 地址</label>
                 <div class="input-row">
                     <input type="url" id="documentServerUrl" name="documentServerUrl" class="input-field" 
-                           placeholder="http://192.168.1.100:8080" value="{{.Settings.DocumentServerURL}}" required>
+                           placeholder="http://192.168.1.100:10099" value="{{.Settings.DocumentServerURL}}" required>
                     <button type="button" class="btn btn-secondary"
                             hx-post="/api/settings/validate"
                             hx-include="#documentServerUrl"

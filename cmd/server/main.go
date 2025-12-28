@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	defaultPort       = "8080"
+	defaultPort       = "10099"
 	defaultConfigFile = "config.json"
 	shutdownTimeout   = 10 * time.Second
 )
@@ -31,7 +31,7 @@ func main() {
 		configPath = flag.String("config", "", "Path to configuration file (default: <data>/config.json)")
 		port       = flag.String("port", defaultPort, "HTTP server port")
 		dataDir    = flag.String("data", "", "Data directory for configuration and logs")
-		baseURL    = flag.String("base-url", "", "Base URL for callbacks (e.g., http://192.168.1.100:8080)")
+		baseURL    = flag.String("base-url", "", "Base URL for callbacks (e.g., http://192.168.1.100:10099)")
 	)
 	flag.Parse()
 
