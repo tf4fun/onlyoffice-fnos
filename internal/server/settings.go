@@ -15,12 +15,14 @@ import (
 type SettingsResponse struct {
 	DocumentServerURL    string `json:"documentServerUrl"`
 	DocumentServerSecret string `json:"documentServerSecret"`
+	BaseURL              string `json:"baseUrl"`
 }
 
 // SaveSettingsRequest represents the request to save settings
 type SaveSettingsRequest struct {
 	DocumentServerURL    string `json:"documentServerUrl"`
 	DocumentServerSecret string `json:"documentServerSecret"`
+	BaseURL              string `json:"baseUrl"`
 }
 
 // handleGetSettings handles GET /api/settings
@@ -39,6 +41,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	s.respondJSON(w, http.StatusOK, &SettingsResponse{
 		DocumentServerURL:    settings.DocumentServerURL,
 		DocumentServerSecret: settings.DocumentServerSecret,
+		BaseURL:              settings.BaseURL,
 	})
 }
 
@@ -52,6 +55,7 @@ func (s *Server) handleSaveSettings(w http.ResponseWriter, r *http.Request) {
 
 	serverURL := strings.TrimSuffix(r.FormValue("documentServerUrl"), "/")
 	secret := r.FormValue("documentServerSecret")
+	baseURL := strings.TrimSuffix(r.FormValue("baseUrl"), "/")
 
 	// Validate URL
 	if serverURL == "" {
@@ -59,15 +63,24 @@ func (s *Server) handleSaveSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if baseURL == "" {
+		s.respondHTMXOrJSON(w, r, false, "本机回调地址不能为空")
+		return
+	}
+
 	settings := &config.Settings{
 		DocumentServerURL:    serverURL,
 		DocumentServerSecret: secret,
+		BaseURL:              baseURL,
 	}
 
 	if err := s.settingsStore.Save(settings); err != nil {
 		s.respondHTMXOrJSON(w, r, false, "保存设置失败")
 		return
 	}
+
+	// Update server's baseURL
+	s.baseURL = baseURL
 
 	s.respondHTMXOrJSON(w, r, true, "设置已保存")
 }

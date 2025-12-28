@@ -51,6 +51,13 @@ func New(cfg *Config) *Server {
 		baseURL:       cfg.BaseURL,
 	}
 
+	// Try to load baseURL from settings if not provided
+	if s.baseURL == "" {
+		if settings, err := cfg.SettingsStore.Load(); err == nil && settings.BaseURL != "" {
+			s.baseURL = settings.BaseURL
+		}
+	}
+
 	// Create config builder
 	s.configBuilder = editor.NewConfigBuilder(cfg.FormatManager, cfg.JWTManager)
 

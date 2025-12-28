@@ -16,7 +16,7 @@
                 <label for="documentServerUrl">Document Server 地址</label>
                 <div class="input-row">
                     <input type="url" id="documentServerUrl" name="documentServerUrl" class="input-field" 
-                           placeholder="http://192.168.1.100:10099" value="{{.Settings.DocumentServerURL}}" required>
+                           placeholder="http://192.168.1.100:8080" value="{{.Settings.DocumentServerURL}}" required>
                     <button type="button" class="btn btn-secondary"
                             hx-post="/api/settings/validate"
                             hx-include="#documentServerUrl"
@@ -42,6 +42,13 @@
                     </button>
                 </div>
                 <div class="help-text">用于与 Document Server 安全通信的密钥，需与 Document Server 配置一致</div>
+            </div>
+
+            <div class="form-group">
+                <label for="baseUrl">本机回调地址</label>
+                <input type="url" id="baseUrl" name="baseUrl" class="input-field" 
+                       placeholder="http://192.168.1.100:10099" value="{{.Settings.BaseURL}}" required>
+                <div class="help-text">Document Server 回调本服务的地址，需填写 NAS 的内网 IP（Docker 中的 Document Server 无法访问 localhost）</div>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block">保存设置</button>

@@ -17,6 +17,7 @@ var (
 type Settings struct {
 	DocumentServerURL    string `json:"documentServerUrl"`
 	DocumentServerSecret string `json:"documentServerSecret"`
+	BaseURL              string `json:"baseUrl"` // Base URL for callbacks (e.g., http://192.168.1.100:10099)
 }
 
 // SettingsStore handles loading and saving settings to a JSON file
