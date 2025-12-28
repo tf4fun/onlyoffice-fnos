@@ -1,0 +1,28 @@
+# References
+references/
+
+# Kiro
+.kiro/
+
+# Build output
+*.fpk
+fnos.onlyoffice-connector/app/target/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,73 @@
+name: Build fnOS Package
+
+on:
+  push:
+    branches:
+      - main
+      - 'dev_*'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Update manifest version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sed -i "s/^version=.*/version=${VERSION}/" fnos.onlyoffice-connector/manifest
+          echo "Updated manifest version to ${VERSION}"
+          cat fnos.onlyoffice-connector/manifest
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o fnos.onlyoffice-connector/app/target/onlyoffice-connector ./cmd/server
+          chmod +x fnos.onlyoffice-connector/app/target/onlyoffice-connector
+          chmod +x fnos.onlyoffice-connector/cmd/*
+
+      - name: Download fnpack
+        run: |
+          curl -L -o /tmp/fnpack https://static2.fnnas.com/fnpack/fnpack-1.0.4-linux-amd64
+          chmod +x /tmp/fnpack
+
+      - name: Build fpk package
+        run: |
+          cd fnos.onlyoffice-connector
+          /tmp/fnpack build
+          mv *.fpk ../
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: onlyoffice-connector-package
+          path: "*.fpk"
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: onlyoffice-connector-package
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "*.fpk"
+          generate_release_notes: true
