@@ -46,8 +46,10 @@
 
             <div class="form-group">
                 <label for="baseUrl">本机回调地址</label>
-                <input type="url" id="baseUrl" name="baseUrl" class="input-field" 
-                       placeholder="http://192.168.1.100:10099" value="{{.Settings.BaseURL}}" required>
+                <div class="input-row">
+                    <input type="url" id="baseUrl" name="baseUrl" class="input-field" 
+                           placeholder="http://192.168.1.100:10099" value="{{.Settings.BaseURL}}" required>
+                </div>
                 <div class="help-text">Document Server 回调本服务的地址，需填写 NAS 的内网 IP（Docker 中的 Document Server 无法访问 localhost）</div>
             </div>
 
