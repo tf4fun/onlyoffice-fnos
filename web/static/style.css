@@ -34,6 +34,15 @@ body {
     padding: 20px;
 }
 
+/* Page center - apply to body for centered layouts */
+.page-center {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
 /* Typography */
 h1 {
     font-size: 24px;
