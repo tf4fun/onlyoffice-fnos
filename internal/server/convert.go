@@ -175,12 +175,24 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 
 // buildDownloadURL builds the download URL for a file
 func (s *Server) buildDownloadURL(filePath string) string {
-	baseURL := s.baseURL
-	if baseURL == "" {
-		baseURL = "http://localhost:10099"
-	}
+	baseURL := s.getEffectiveBaseURL()
 	baseURL = strings.TrimSuffix(baseURL, "/")
 	return fmt.Sprintf("%s/download?path=%s", baseURL, url.QueryEscape(filePath))
+}
+
+// getEffectiveBaseURL returns the effective base URL, trying settings first
+func (s *Server) getEffectiveBaseURL() string {
+	// First try the server's cached baseURL
+	if s.baseURL != "" {
+		return s.baseURL
+	}
+	// Try to load from settings
+	if settings, err := s.settingsStore.Load(); err == nil && settings.BaseURL != "" {
+		s.baseURL = settings.BaseURL
+		return s.baseURL
+	}
+	// Fallback to localhost (should not happen if properly configured)
+	return "http://localhost:10099"
 }
 
 // buildTargetPath builds the target file path for conversion

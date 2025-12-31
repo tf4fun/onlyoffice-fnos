@@ -155,6 +155,20 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if baseURL is configured (required for callbacks)
+	effectiveBaseURL := s.getEffectiveBaseURL()
+	if effectiveBaseURL == "" || effectiveBaseURL == "http://localhost:10099" {
+		// Check if settings has a proper baseURL
+		if settings.BaseURL == "" {
+			s.renderErrorPage(w, &ErrorPageData{
+				Title:        "配置错误",
+				Message:      "本机回调地址未配置，请先在设置页面配置正确的回调地址（如 http://192.168.x.x:10099）。",
+				ShowSettings: true,
+			})
+			return
+		}
+	}
+
 	// Get file info
 	fileInfo, err := s.fileService.GetFileInfo(filePath)
 	if err != nil {
@@ -412,10 +426,7 @@ func (s *Server) buildEditorConfig(req *editorConfigRequest) (map[string]interfa
 
 // buildCallbackURL builds the callback URL for a file
 func (s *Server) buildCallbackURL(filePath string) string {
-	baseURL := s.baseURL
-	if baseURL == "" {
-		baseURL = "http://localhost:10099"
-	}
+	baseURL := s.getEffectiveBaseURL()
 	return baseURL + "/callback?path=" + url.QueryEscape(filePath)
 }
 

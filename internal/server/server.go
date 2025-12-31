@@ -51,11 +51,13 @@ func New(cfg *Config) *Server {
 		baseURL:       cfg.BaseURL,
 	}
 
-	// Try to load baseURL from settings if not provided
-	if s.baseURL == "" {
-		if settings, err := cfg.SettingsStore.Load(); err == nil && settings.BaseURL != "" {
-			s.baseURL = settings.BaseURL
-		}
+	// Always try to load baseURL from settings first (user-configured value takes priority)
+	if settings, err := cfg.SettingsStore.Load(); err == nil && settings.BaseURL != "" {
+		s.baseURL = settings.BaseURL
+	}
+	// If still empty after loading settings, use the provided config (command line default)
+	if s.baseURL == "" && cfg.BaseURL != "" {
+		s.baseURL = cfg.BaseURL
 	}
 
 	// Create config builder
