@@ -4,43 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} - OnlyOffice Connector</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/bulma.min.css">
 </head>
-<body class="container-center">
-    <div class="container container-sm text-center">
-        <div class="error-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-            </svg>
+<body>
+    <section class="hero is-fullheight has-background-light">
+        <div class="hero-body">
+            <div class="container">
+                <div class="columns is-centered">
+                    <div class="column is-half-desktop is-two-thirds-tablet">
+                        <div class="box has-text-centered">
+                            <span class="icon is-large has-text-danger mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                </svg>
+                            </span>
+                            
+                            <h1 class="title is-4">{{.Title}}</h1>
+                            
+                            {{if .ErrorCode}}
+                            <p class="has-text-grey mb-2">错误代码: {{.ErrorCode}}</p>
+                            {{end}}
+                            
+                            <p class="is-size-5 mb-4">{{.Message}}</p>
+                            
+                            {{if .Details}}
+                            <p class="has-text-grey-light is-size-7 mb-5">{{.Details}}</p>
+                            {{end}}
+                            
+                            <div class="buttons is-centered mb-5">
+                                {{if .RetryURL}}
+                                <a href="{{.RetryURL}}" class="button is-primary">重试</a>
+                                {{end}}
+                                
+                                {{if .BackURL}}
+                                <a href="{{.BackURL}}" class="button is-light">{{if .BackText}}{{.BackText}}{{else}}返回{{end}}</a>
+                                {{else}}
+                                <a href="/" class="button is-light">返回设置</a>
+                                {{end}}
+                            </div>
+                            
+                            <p class="help">
+                                如果问题持续存在，请检查 <a href="/">Document Server 配置</a> 或查看服务器日志。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <h1>{{.Title}}</h1>
-        
-        {{if .ErrorCode}}
-        <div class="error-code">错误代码: {{.ErrorCode}}</div>
-        {{end}}
-        
-        <div class="error-message">{{.Message}}</div>
-        
-        {{if .Details}}
-        <div class="error-details">{{.Details}}</div>
-        {{end}}
-        
-        <div>
-            {{if .RetryURL}}
-            <a href="{{.RetryURL}}" class="btn btn-primary">重试</a>
-            {{end}}
-            
-            {{if .BackURL}}
-            <a href="{{.BackURL}}" class="btn btn-secondary">{{if .BackText}}{{.BackText}}{{else}}返回{{end}}</a>
-            {{else}}
-            <a href="/" class="btn btn-secondary">返回设置</a>
-            {{end}}
-        </div>
-        
-        <div class="help-text-center">
-            如果问题持续存在，请检查 <a href="/">Document Server 配置</a> 或查看服务器日志。
-        </div>
-    </div>
+    </section>
 </body>
 </html>

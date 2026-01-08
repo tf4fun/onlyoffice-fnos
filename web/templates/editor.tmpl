@@ -1,18 +1,27 @@
 <!DOCTYPE html>
-<html lang="{{.Lang}}" class="editor-fullscreen">
+<html lang="{{.Lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>{{.Title}} - OnlyOffice Editor</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        #editor-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transition: opacity 0.25s ease; }
+        .loader-wrapper { position: fixed; inset: 0; z-index: 1000; transition: opacity 0.25s ease; }
+        .spinner { width: 48px; height: 48px; border: 4px solid #dbdbdb; border-top-color: #3273dc; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
-    <div id="editor-loading" class="editor-loading">
-        <div class="spinner"></div>
-        <div class="loading-text">Loading editor...</div>
-        <button class="cancel-btn" onclick="window.close()">Cancel</button>
+    <div id="editor-loading" class="loader-wrapper hero is-fullheight has-background-light">
+        <div class="hero-body is-flex is-flex-direction-column is-justify-content-center is-align-items-center">
+            <div class="spinner"></div>
+            <p class="mt-4 has-text-grey">Loading editor...</p>
+            <button class="button is-light mt-4" onclick="window.close()">Cancel</button>
+        </div>
     </div>
     <div id="editor-container" style="opacity: 0;"></div>
     <script src="{{.DocumentServerURL}}/web-apps/apps/api/documents/api.js"></script>
@@ -20,58 +29,40 @@
         var docEditor;
         var config = {{.ConfigJSON}};
 
-        // Called when editor is ready
         var onAppReady = function() {
             console.log("Document editor ready");
             var loader = document.getElementById('editor-loading');
             var editor = document.getElementById('editor-container');
-            
-            // Fade out loader
             loader.style.opacity = '0';
-            setTimeout(function() {
-                loader.style.display = 'none';
-            }, 250);
-            
-            // Fade in editor
+            setTimeout(function() { loader.style.display = 'none'; }, 250);
             editor.style.opacity = '1';
         };
 
-        // Called when close is requested
         var onRequestClose = function() {
-            if (window.opener) {
-                window.close();
-                return;
-            }
+            if (window.opener) { window.close(); return; }
             docEditor.destroyEditor();
         };
 
-        // Called on error
         var onError = function(event) {
             console.error("Editor error:", event);
-            onAppReady(); // Still show editor on error
+            onAppReady();
         };
 
-        // Fix size for mobile devices
         var fixSize = function() {
             var container = document.getElementById('editor-container');
-            if (container) {
-                container.style.height = window.innerHeight + 'px';
-            }
+            if (container) { container.style.height = window.innerHeight + 'px'; }
         };
 
-        // Merge events with config
         config.events = config.events || {};
         config.events.onAppReady = onAppReady;
         config.events.onRequestClose = onRequestClose;
         config.events.onError = onError;
 
-        // Initialize editor
         var connectEditor = function() {
             docEditor = new DocsAPI.DocEditor('editor-container', config);
             fixSize();
         };
 
-        // Event listeners
         window.addEventListener('load', connectEditor);
         window.addEventListener('resize', fixSize);
     </script>
