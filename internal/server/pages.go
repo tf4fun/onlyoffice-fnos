@@ -88,11 +88,7 @@ func (s *Server) loadTemplates() error {
 
 // handleSettingsPage handles GET / - renders the settings page
 func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request) {
-	// Load current settings
-	settings, err := s.settingsStore.Load()
-	if err != nil && err != config.ErrConfigNotFound {
-		log.Printf("Failed to load settings: %v", err)
-	}
+	settings := s.settings
 	if settings == nil {
 		settings = &config.Settings{}
 	}
@@ -134,22 +130,11 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	// Get view mode
 	mode := r.URL.Query().Get("mode")
 
-	// Load settings
-	settings, err := s.settingsStore.Load()
-	if err != nil {
-		log.Printf("Failed to load settings: %v", err)
+	// Check settings
+	if s.settings == nil || s.settings.DocumentServerURL == "" {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:        "配置错误",
-			Message:      "无法加载 Document Server 配置，请先完成设置。",
-			ShowSettings: true,
-		})
-		return
-	}
-
-	if settings.DocumentServerURL == "" {
-		s.renderErrorPage(w, &ErrorPageData{
-			Title:        "配置错误",
-			Message:      "Document Server 地址未配置，请先完成设置。",
+			Message:      "Document Server 地址未配置，请设置 DOCUMENT_SERVER_URL 环境变量。",
 			ShowSettings: true,
 		})
 		return
@@ -158,11 +143,10 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	// Check if baseURL is configured (required for callbacks)
 	effectiveBaseURL := s.getEffectiveBaseURL()
 	if effectiveBaseURL == "" || effectiveBaseURL == "http://localhost:10099" {
-		// Check if settings has a proper baseURL
-		if settings.BaseURL == "" {
+		if s.settings.BaseURL == "" {
 			s.renderErrorPage(w, &ErrorPageData{
 				Title:        "配置错误",
-				Message:      "本机回调地址未配置，请先在设置页面配置正确的回调地址（如 http://192.168.x.x:10099）。",
+				Message:      "本机回调地址未配置，请设置 BASE_URL 环境变量（如 http://192.168.x.x:10099）。",
 				ShowSettings: true,
 			})
 			return
@@ -216,7 +200,7 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		UserName:  userName,
 		Lang:      lang,
 		BaseURL:   s.baseURL,
-		JWTSecret: settings.DocumentServerSecret,
+		JWTSecret: s.settings.DocumentServerSecret,
 		ViewMode:  mode == "view",
 	}
 
@@ -247,7 +231,7 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	data := &EditorPageData{
 		Title:             fileInfo.Name,
 		ConfigJSON:        template.JS(configJSON),
-		DocumentServerURL: settings.DocumentServerURL,
+		DocumentServerURL: s.settings.DocumentServerURL,
 		Lang:              lang,
 	}
 

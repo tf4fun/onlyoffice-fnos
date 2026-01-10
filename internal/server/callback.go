@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"onlyoffice-fnos/internal/config"
 	jwtpkg "onlyoffice-fnos/internal/jwt"
 )
 
@@ -75,23 +74,15 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Callback received: path=%s, status=%d, key=%s", filePath, req.Status, req.Key)
 
-	// Load settings to get JWT secret
-	settings, err := s.settingsStore.Load()
-	if err != nil && err != config.ErrConfigNotFound {
-		log.Printf("Callback error: failed to load settings: %v", err)
-		s.respondJSON(w, http.StatusOK, &CallbackResponse{Error: 1})
-		return
-	}
-
 	// Verify JWT token if secret is configured
-	if settings != nil && settings.DocumentServerSecret != "" {
+	if s.settings != nil && s.settings.DocumentServerSecret != "" {
 		if req.Token == "" {
 			log.Printf("Callback error: missing JWT token")
 			s.respondJSON(w, http.StatusOK, &CallbackResponse{Error: 1})
 			return
 		}
 
-		_, err := s.jwtManager.Verify(settings.DocumentServerSecret, req.Token)
+		_, err := s.jwtManager.Verify(s.settings.DocumentServerSecret, req.Token)
 		if err != nil {
 			log.Printf("Callback error: invalid JWT token: %v", err)
 			if err == jwtpkg.ErrExpiredToken {

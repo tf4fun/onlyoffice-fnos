@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"onlyoffice-fnos/internal/config"
 	"onlyoffice-fnos/internal/file"
 )
 
@@ -77,19 +76,8 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load settings
-	settings, err := s.settingsStore.Load()
-	if err != nil {
-		log.Printf("Convert error: failed to load settings: %v", err)
-		if err == config.ErrConfigNotFound {
-			s.respondError(w, http.StatusBadRequest, "Document Server not configured")
-		} else {
-			s.respondError(w, http.StatusInternalServerError, "Failed to load settings")
-		}
-		return
-	}
-
-	if settings.DocumentServerURL == "" {
+	// Check settings
+	if s.settings == nil || s.settings.DocumentServerURL == "" {
 		s.respondError(w, http.StatusBadRequest, "Document Server URL not configured")
 		return
 	}
@@ -111,7 +99,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Sign request with JWT if secret is configured
-	if settings.DocumentServerSecret != "" {
+	if s.settings.DocumentServerSecret != "" {
 		claims := map[string]interface{}{
 			"async":      convReq.Async,
 			"filetype":   convReq.Filetype,
@@ -120,7 +108,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 			"title":      convReq.Title,
 			"url":        convReq.URL,
 		}
-		token, err := s.jwtManager.Sign(settings.DocumentServerSecret, claims)
+		token, err := s.jwtManager.Sign(s.settings.DocumentServerSecret, claims)
 		if err != nil {
 			log.Printf("Convert error: failed to sign request: %v", err)
 			s.respondError(w, http.StatusInternalServerError, "Failed to sign conversion request")
@@ -130,7 +118,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call conversion API
-	convertedURL, err := s.callConversionAPI(settings.DocumentServerURL, convReq, settings.DocumentServerSecret)
+	convertedURL, err := s.callConversionAPI(s.settings.DocumentServerURL, convReq, s.settings.DocumentServerSecret)
 	if err != nil {
 		log.Printf("Convert error: conversion failed: %v", err)
 		s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("Conversion failed: %v", err))
@@ -180,15 +168,15 @@ func (s *Server) buildDownloadURL(filePath string) string {
 	return fmt.Sprintf("%s/download?path=%s", baseURL, url.QueryEscape(filePath))
 }
 
-// getEffectiveBaseURL returns the effective base URL, trying settings first
+// getEffectiveBaseURL returns the effective base URL
 func (s *Server) getEffectiveBaseURL() string {
 	// First try the server's cached baseURL
 	if s.baseURL != "" {
 		return s.baseURL
 	}
-	// Try to load from settings
-	if settings, err := s.settingsStore.Load(); err == nil && settings.BaseURL != "" {
-		s.baseURL = settings.BaseURL
+	// Try settings
+	if s.settings != nil && s.settings.BaseURL != "" {
+		s.baseURL = s.settings.BaseURL
 		return s.baseURL
 	}
 	// Fallback to localhost (should not happen if properly configured)

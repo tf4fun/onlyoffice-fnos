@@ -1,14 +1,11 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"onlyoffice-fnos/internal/config"
 )
 
 // SettingsResponse represents the settings API response
@@ -18,88 +15,17 @@ type SettingsResponse struct {
 	BaseURL              string `json:"baseUrl"`
 }
 
-// SaveSettingsRequest represents the request to save settings
-type SaveSettingsRequest struct {
-	DocumentServerURL    string `json:"documentServerUrl"`
-	DocumentServerSecret string `json:"documentServerSecret"`
-	BaseURL              string `json:"baseUrl"`
-}
-
 // handleGetSettings handles GET /api/settings
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
-	settings, err := s.settingsStore.Load()
-	if err != nil {
-		if err == config.ErrConfigNotFound {
-			// Return empty settings if config doesn't exist
-			s.respondJSON(w, http.StatusOK, &SettingsResponse{})
-			return
-		}
-		s.respondError(w, http.StatusInternalServerError, "Failed to load settings")
+	if s.settings == nil {
+		s.respondJSON(w, http.StatusOK, &SettingsResponse{})
 		return
 	}
 
 	s.respondJSON(w, http.StatusOK, &SettingsResponse{
-		DocumentServerURL:    settings.DocumentServerURL,
-		DocumentServerSecret: settings.DocumentServerSecret,
-		BaseURL:              settings.BaseURL,
-	})
-}
-
-// handleSaveSettings handles POST /api/settings
-func (s *Server) handleSaveSettings(w http.ResponseWriter, r *http.Request) {
-	// Parse form data
-	if err := r.ParseForm(); err != nil {
-		s.respondHTMXOrJSON(w, r, false, "表单数据无效")
-		return
-	}
-
-	serverURL := strings.TrimSuffix(r.FormValue("documentServerUrl"), "/")
-	secret := r.FormValue("documentServerSecret")
-	baseURL := strings.TrimSuffix(r.FormValue("baseUrl"), "/")
-
-	// Validate URL
-	if serverURL == "" {
-		s.respondHTMXOrJSON(w, r, false, "Document Server 地址不能为空")
-		return
-	}
-
-	if baseURL == "" {
-		s.respondHTMXOrJSON(w, r, false, "本机回调地址不能为空")
-		return
-	}
-
-	settings := &config.Settings{
-		DocumentServerURL:    serverURL,
-		DocumentServerSecret: secret,
-		BaseURL:              baseURL,
-	}
-
-	if err := s.settingsStore.Save(settings); err != nil {
-		s.respondHTMXOrJSON(w, r, false, "保存设置失败")
-		return
-	}
-
-	// Update server's baseURL
-	s.baseURL = baseURL
-
-	s.respondHTMXOrJSON(w, r, true, "设置已保存")
-}
-
-// respondHTMXOrJSON responds with HTML for htmx requests or JSON otherwise
-func (s *Server) respondHTMXOrJSON(w http.ResponseWriter, r *http.Request, success bool, message string) {
-	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		class := "error"
-		if success {
-			class = "success"
-		}
-		fmt.Fprintf(w, `<div class="message %s">%s</div>`, class, message)
-		return
-	}
-
-	s.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"success": success,
-		"message": message,
+		DocumentServerURL:    s.settings.DocumentServerURL,
+		DocumentServerSecret: s.settings.DocumentServerSecret,
+		BaseURL:              s.settings.BaseURL,
 	})
 }
 
@@ -123,34 +49,20 @@ func (s *Server) handleGenerateKey(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleValidateConnection(w http.ResponseWriter, r *http.Request) {
 	var serverURL string
 
-	// Support both JSON and form data
-	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		var req struct {
-			DocumentServerURL string `json:"documentServerUrl"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			s.respondError(w, http.StatusBadRequest, "Invalid JSON")
-			return
-		}
-		serverURL = req.DocumentServerURL
-	} else {
-		// Form data
-		if err := r.ParseForm(); err != nil {
-			s.respondError(w, http.StatusBadRequest, "Invalid form data")
-			return
-		}
-		serverURL = r.FormValue("documentServerUrl")
+	// Support form data
+	if err := r.ParseForm(); err != nil {
+		s.respondError(w, http.StatusBadRequest, "Invalid form data")
+		return
+	}
+	serverURL = r.FormValue("documentServerUrl")
+
+	if serverURL == "" && s.settings != nil {
+		serverURL = s.settings.DocumentServerURL
 	}
 
 	if serverURL == "" {
-		// Try to load from settings
-		settings, err := s.settingsStore.Load()
-		if err != nil || settings.DocumentServerURL == "" {
-			s.respondError(w, http.StatusBadRequest, "Document Server URL is required")
-			return
-		}
-		serverURL = settings.DocumentServerURL
+		s.respondError(w, http.StatusBadRequest, "Document Server URL is required")
+		return
 	}
 
 	// Normalize URL
@@ -193,8 +105,6 @@ func (s *Server) handleValidateConnection(w http.ResponseWriter, r *http.Request
 
 // validateDocumentServer checks if the Document Server is accessible
 func (s *Server) validateDocumentServer(serverURL string) (bool, error) {
-	// Try to access the Document Server's healthcheck or API endpoint
-	// OnlyOffice Document Server typically has /healthcheck endpoint
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}

@@ -22,7 +22,7 @@ import (
 // Server represents the HTTP server
 type Server struct {
 	router        *chi.Mux
-	settingsStore *config.SettingsStore
+	settings      *config.Settings
 	fileService   *file.Service
 	formatManager *format.Manager
 	jwtManager    *jwt.Manager
@@ -33,7 +33,7 @@ type Server struct {
 
 // Config holds server configuration
 type Config struct {
-	SettingsStore *config.SettingsStore
+	Settings      *config.Settings
 	FileService   *file.Service
 	FormatManager *format.Manager
 	JWTManager    *jwt.Manager
@@ -44,16 +44,16 @@ type Config struct {
 func New(cfg *Config) *Server {
 	s := &Server{
 		router:        chi.NewRouter(),
-		settingsStore: cfg.SettingsStore,
+		settings:      cfg.Settings,
 		fileService:   cfg.FileService,
 		formatManager: cfg.FormatManager,
 		jwtManager:    cfg.JWTManager,
 		baseURL:       cfg.BaseURL,
 	}
 
-	// Always try to load baseURL from settings first (user-configured value takes priority)
-	if settings, err := cfg.SettingsStore.Load(); err == nil && settings.BaseURL != "" {
-		s.baseURL = settings.BaseURL
+	// Use baseURL from settings if available
+	if cfg.Settings != nil && cfg.Settings.BaseURL != "" {
+		s.baseURL = cfg.Settings.BaseURL
 	}
 	// If still empty after loading settings, use the provided config (command line default)
 	if s.baseURL == "" && cfg.BaseURL != "" {
@@ -99,7 +99,6 @@ func (s *Server) setupRoutes() {
 	// API routes
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/settings", s.handleGetSettings)
-		r.Post("/settings", s.handleSaveSettings)
 		r.Post("/settings/generate-key", s.handleGenerateKey)
 		r.Post("/settings/validate", s.handleValidateConnection)
 	})

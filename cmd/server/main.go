@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -20,40 +19,17 @@ import (
 )
 
 const (
-	defaultPort       = "10099"
-	defaultConfigFile = "config.json"
-	shutdownTimeout   = 10 * time.Second
+	defaultPort     = "10099"
+	shutdownTimeout = 10 * time.Second
 )
 
 func main() {
 	// Parse command line arguments
 	var (
-		configPath = flag.String("config", "", "Path to configuration file (default: <data>/config.json)")
-		port       = flag.String("port", defaultPort, "HTTP server port")
-		dataDir    = flag.String("data", "", "Data directory for configuration and logs")
-		baseURL    = flag.String("base-url", "", "Base URL for callbacks (e.g., http://192.168.1.100:10099)")
+		port    = flag.String("port", defaultPort, "HTTP server port")
+		baseURL = flag.String("base-url", "", "Base URL for callbacks (e.g., http://192.168.1.100:10099)")
 	)
 	flag.Parse()
-
-	// Determine data directory
-	if *dataDir == "" {
-		// Use current directory if not specified
-		cwd, err := os.Getwd()
-		if err != nil {
-			log.Fatalf("Failed to get current directory: %v", err)
-		}
-		*dataDir = cwd
-	}
-
-	// Ensure data directory exists
-	if err := os.MkdirAll(*dataDir, 0755); err != nil {
-		log.Fatalf("Failed to create data directory: %v", err)
-	}
-
-	// Determine config file path
-	if *configPath == "" {
-		*configPath = filepath.Join(*dataDir, defaultConfigFile)
-	}
 
 	// Determine base URL
 	if *baseURL == "" {
@@ -61,20 +37,32 @@ func main() {
 	}
 
 	log.Printf("OnlyOffice fnOS Connector starting...")
-	log.Printf("  Config file: %s", *configPath)
-	log.Printf("  Data directory: %s", *dataDir)
 	log.Printf("  Port: %s", *port)
 	log.Printf("  Base URL: %s", *baseURL)
 
+	// Load settings from environment variables
+	settings, err := config.LoadFromEnv()
+	if err != nil {
+		log.Printf("Warning: %v, using defaults", err)
+		settings = &config.Settings{}
+	} else {
+		log.Printf("  Document Server URL: %s", settings.DocumentServerURL)
+		if settings.DocumentServerSecret != "" {
+			log.Printf("  JWT Secret: configured")
+		}
+		if settings.BaseURL != "" {
+			log.Printf("  Base URL (from env): %s", settings.BaseURL)
+		}
+	}
+
 	// Initialize modules
-	settingsStore := config.NewSettingsStore(*configPath)
 	formatManager := format.NewManager()
 	jwtManager := jwt.NewManager()
 	fileService := file.NewService("", 0) // No base path restriction, no size limit
 
 	// Create server configuration
 	serverConfig := &server.Config{
-		SettingsStore: settingsStore,
+		Settings:      settings,
 		FileService:   fileService,
 		FormatManager: formatManager,
 		JWTManager:    jwtManager,

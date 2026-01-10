@@ -49,23 +49,18 @@ func TestProperty3_DocumentSaveIntegrity(t *testing.T) {
 		defer mockDocServer.Close()
 
 		// Setup server components
-		settingsPath := filepath.Join(tempDir, "config.json")
-		settingsStore := config.NewSettingsStore(settingsPath)
 		fileService := file.NewService(tempDir, 0)
 		formatManager := format.NewManager()
 		jwtManager := jwt.NewManager()
 
-		// Save settings (no JWT secret for simplicity)
+		// Create settings
 		settings := &config.Settings{
 			DocumentServerURL: mockDocServer.URL,
-		}
-		if err := settingsStore.Save(settings); err != nil {
-			t.Fatalf("Failed to save settings: %v", err)
 		}
 
 		// Create server
 		server := New(&Config{
-			SettingsStore: settingsStore,
+			Settings:      settings,
 			FileService:   fileService,
 			FormatManager: formatManager,
 			JWTManager:    jwtManager,
@@ -158,8 +153,6 @@ func TestCallbackWithJWTVerification(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Setup with JWT secret
-	settingsPath := filepath.Join(tempDir, "config.json")
-	settingsStore := config.NewSettingsStore(settingsPath)
 	jwtManager := jwt.NewManager()
 	secret := jwtManager.GenerateSecret()
 
@@ -167,10 +160,9 @@ func TestCallbackWithJWTVerification(t *testing.T) {
 		DocumentServerURL:    "http://example.com",
 		DocumentServerSecret: secret,
 	}
-	settingsStore.Save(settings)
 
 	server := New(&Config{
-		SettingsStore: settingsStore,
+		Settings:      settings,
 		FileService:   file.NewService(tempDir, 0),
 		FormatManager: format.NewManager(),
 		JWTManager:    jwtManager,
@@ -268,17 +260,12 @@ func TestCallbackStatusHandling(t *testing.T) {
 
 // Helper function to create a test server
 func createTestServer(t *testing.T, tempDir string) *Server {
-	settingsPath := filepath.Join(tempDir, "config.json")
-	settingsStore := config.NewSettingsStore(settingsPath)
-
-	// Save default settings
 	settings := &config.Settings{
 		DocumentServerURL: "http://example.com",
 	}
-	settingsStore.Save(settings)
 
 	return New(&Config{
-		SettingsStore: settingsStore,
+		Settings:      settings,
 		FileService:   file.NewService(tempDir, 0),
 		FormatManager: format.NewManager(),
 		JWTManager:    jwt.NewManager(),
