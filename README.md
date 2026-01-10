@@ -16,17 +16,26 @@
 
 | 类型 | 可编辑 | 可转换 | 仅查看 |
 |------|--------|--------|--------|
-| 文档 | docx | doc, odt, rtf, txt | pdf, djvu, epub, fb2 |
+| 文档 | docx | doc, odt, rtf, txt | pdf, djvu, oxps, epub, fb2 |
 | 表格 | xlsx | xls, ods, csv | - |
 | 演示 | pptx | ppt, odp | - |
 
 ## 安装部署
 
-### 1. 部署 OnlyOffice Document Server
+提供两种安装方式，根据你的需求选择：
 
-在 fnOS 的 Docker 管理中创建 `docker-compose.yml`:
+---
+
+### 方式一：FPK 安装
+
+分别安装 Connector 和 Document Server，适合已有 Docker 环境或需要自定义配置的用户。
+
+#### 1. 部署 OnlyOffice Document Server
+
+在 fnOS 的 Docker 管理中创建容器，或使用 SSH 执行：
 
 ```yaml
+# docker-compose.yml
 services:
   onlyoffice-documentserver:
     image: onlyoffice/documentserver:latest
@@ -38,38 +47,112 @@ services:
       - JWT_IN_BODY=true
     ports:
       - "10098:80"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
-      interval: 30s
-      retries: 5
-      start_period: 60s
-      timeout: 10s
     restart: always
     stop_grace_period: 60s
     volumes:
-      - ./data:/var/www/onlyoffice/Data
-      - ./log:/var/log/onlyoffice
+      - ./volumes/data:/var/www/onlyoffice/Data
+      - ./volumes/log:/var/log/onlyoffice
+      - ./volumes/lib:/var/lib/onlyoffice
+      - ./volumes/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+      - ./volumes/fonts:/usr/share/fonts/truetype/custom
 ```
-
-启动服务:
 
 ```bash
 docker compose up -d
 ```
 
-### 2. 安装 OnlyOffice Connector
+#### 2. 安装 OnlyOffice Connector
 
-1. 前往 [Releases](https://github.com/tf4fun/onlyoffice-fnos/releases) 页面下载最新的 `.fpk` 安装包
-2. 在 fnOS 应用中心选择「手动安装」，上传 `.fpk` 文件完成安装
-3. 安装完成后，在应用列表中打开「OnlyOffice 连接器」进行配置
+1. 前往 [Releases](https://github.com/tf4fun/onlyoffice-fnos/releases) 下载最新的 `.fpk` 安装包
+2. 在 fnOS 应用中心选择「手动安装」，上传 `.fpk` 文件
+3. 安装完成后打开应用进行配置
 
-### 3. 配置连接器
+#### 3. 配置连接器
 
-打开连接器设置页面，填写以下信息:
+在连接器设置页面填写：
 
-- **Document Server URL**: `http://your-nas-ip:10098`
-- **JWT Secret**: 与 docker-compose 中设置的 `JWT_SECRET` 保持一致
-- **Base URL**: `http://your-nas-ip:10099` (连接器的回调地址)
+| 配置项 | 说明 | 示例 |
+|--------|------|------|
+| Document Server URL | Document Server 地址 | `http://your-nas-ip:10098` |
+| JWT Secret | 与 Document Server 的 JWT_SECRET 一致 | `your-secret-key-change-me` |
+| Base URL | 连接器回调地址 | `http://your-nas-ip:10099` |
+
+---
+
+### 方式二：Docker Compose 一键安装
+
+使用 WatchCow 通过 compose.yaml 一次性部署 Connector 和 Document Server。
+
+#### 1. 创建 compose.yaml
+
+```yaml
+networks:
+  onlyoffice-net:
+    name: onlyoffice-net
+    driver: bridge
+
+services:
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    depends_on:
+      - onlyoffice-documentserver
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-documentserver
+      - DOCUMENT_SERVER_SECRET=your-secret-key-change-me  # 请修改
+      - BASE_URL=http://onlyoffice-connector:10099
+    ports:
+      - '10099:10099'
+    volumes:
+      - /vol1:/vol1  # 根据实际存储卷调整
+    labels:
+      watchcow.enable: "true"
+      watchcow.editor.service_port: "10099"
+      watchcow.editor.protocol: "http"
+      watchcow.editor.path: "/editor"
+      watchcow.editor.ui_type: "iframe"
+      watchcow.editor.all_users: "true"
+      watchcow.editor.title: "使用 OnlyOffice 打开"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
+      watchcow.editor.icon: "file://onlyoffice.png"
+      watchcow.editor.no_display: "true"
+
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice-documentserver
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=your-secret-key-change-me  # 与 connector 保持一致
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    volumes:
+      - ./volumes/data:/var/www/onlyoffice/Data
+      - ./volumes/log:/var/log/onlyoffice
+      - ./volumes/lib:/var/lib/onlyoffice
+      - ./volumes/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+      - ./volumes/fonts:/usr/share/fonts/truetype/custom
+```
+
+#### 2. 部署
+
+将 compose.yaml 放入 fnOS 的 Docker 项目目录，通过 WatchCow 或命令行启动：
+
+```bash
+docker compose up -d
+```
+
+#### 3. 配置存储卷
+
+根据你的 fnOS 存储配置，修改 `volumes` 挂载路径，确保 connector 能访问到需要编辑的文件。
+
+---
 
 ## 使用方法
 

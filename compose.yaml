@@ -30,7 +30,7 @@ services:
       watchcow.editor.ui_type: "iframe"
       watchcow.editor.all_users: "true"
       watchcow.editor.title: "使用 OnlyOffice 打开"
-      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
       watchcow.editor.icon: "file://onlyoffice.png"
       watchcow.editor.no_display: "true"
 
