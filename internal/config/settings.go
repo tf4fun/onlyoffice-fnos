@@ -13,11 +13,37 @@ var (
 	ErrInvalidConfig  = errors.New("invalid configuration")
 )
 
+// Environment variable names
+const (
+	EnvDocumentServerURL    = "DOCUMENT_SERVER_URL"
+	EnvDocumentServerSecret = "DOCUMENT_SERVER_SECRET"
+	EnvBaseURL              = "BASE_URL"
+)
+
 // Settings represents the application configuration
 type Settings struct {
 	DocumentServerURL    string `json:"documentServerUrl"`
 	DocumentServerSecret string `json:"documentServerSecret"`
 	BaseURL              string `json:"baseUrl"` // Base URL for callbacks (e.g., http://192.168.1.100:10099)
+}
+
+// LoadFromEnv loads settings from environment variables.
+// Returns nil if no environment variables are set.
+func LoadFromEnv() *Settings {
+	url := os.Getenv(EnvDocumentServerURL)
+	secret := os.Getenv(EnvDocumentServerSecret)
+	baseURL := os.Getenv(EnvBaseURL)
+
+	// Return nil if no env vars are set
+	if url == "" && secret == "" && baseURL == "" {
+		return nil
+	}
+
+	return &Settings{
+		DocumentServerURL:    url,
+		DocumentServerSecret: secret,
+		BaseURL:              baseURL,
+	}
 }
 
 // SettingsStore handles loading and saving settings to a JSON file
@@ -33,8 +59,20 @@ func NewSettingsStore(filePath string) *SettingsStore {
 	}
 }
 
-// Load reads settings from the JSON file
+// Load reads settings from environment variables first, then falls back to JSON file.
+// Environment variables take precedence over file configuration.
 func (s *SettingsStore) Load() (*Settings, error) {
+	// First, try to load from environment variables
+	if envSettings := LoadFromEnv(); envSettings != nil {
+		return envSettings, nil
+	}
+
+	// Fall back to file-based configuration
+	return s.LoadFromFile()
+}
+
+// LoadFromFile reads settings from the JSON file only
+func (s *SettingsStore) LoadFromFile() (*Settings, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
