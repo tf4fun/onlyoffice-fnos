@@ -2,6 +2,7 @@ package server
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -34,7 +35,13 @@ func (s *Server) setupProxy() {
 			req.URL.Path = "/"
 		}
 
-		// Determine scheme
+		// Determine host first
+		host := req.Host
+		if fwdHost := req.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+			host = fwdHost
+		}
+
+		// Determine scheme - check multiple headers that proxies might set
 		scheme := "http"
 		if req.TLS != nil {
 			scheme = "https"
@@ -42,12 +49,22 @@ func (s *Server) setupProxy() {
 		if fwdProto := req.Header.Get("X-Forwarded-Proto"); fwdProto != "" {
 			scheme = fwdProto
 		}
-
-		// Determine host
-		host := req.Host
-		if fwdHost := req.Header.Get("X-Forwarded-Host"); fwdHost != "" {
-			host = fwdHost
+		if fwdScheme := req.Header.Get("X-Forwarded-Scheme"); fwdScheme != "" {
+			scheme = fwdScheme
 		}
+		if xScheme := req.Header.Get("X-Scheme"); xScheme != "" {
+			scheme = xScheme
+		}
+
+		// If host looks like an external domain (not IP, not localhost), assume HTTPS
+		// This handles cases where upstream proxy doesn't set X-Forwarded-Proto
+		if scheme == "http" && !isInternalHost(host) {
+			scheme = "https"
+		}
+
+		// Log for debugging proxy issues
+		log.Printf("Proxy: path=%s, scheme=%s, host=%s, X-Forwarded-Proto=%s",
+			req.URL.Path, scheme, host, req.Header.Get("X-Forwarded-Proto"))
 
 		// Critical: Tell OnlyOffice its virtual path
 		req.Header.Set("X-Forwarded-Host", host+"/docserver")
@@ -62,4 +79,29 @@ func (s *Server) setupProxy() {
 
 	s.router.Handle("/docserver/*", proxy)
 	s.router.Handle("/docserver", proxy)
+}
+
+
+// isInternalHost checks if the host looks like an internal/local address
+func isInternalHost(host string) bool {
+	// Remove port if present
+	h := host
+	if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
+		h = host[:colonIdx]
+	}
+
+	// Check for localhost
+	if h == "localhost" || h == "127.0.0.1" || h == "::1" {
+		return true
+	}
+
+	// Check if it's an IP address
+	ip := net.ParseIP(h)
+	if ip != nil {
+		// Check for private IP ranges
+		return ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast()
+	}
+
+	// It's a domain name - assume external
+	return false
 }

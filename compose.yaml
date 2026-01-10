@@ -55,3 +55,6 @@ services:
     volumes:
        - ./volumes/data:/var/www/onlyoffice/Data
        - ./volumes/log:/var/log/onlyoffice
+       - ./volumes/lib:/var/lib/onlyoffice
+       - ./volumes/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+       - ./volumes/fonts:/usr/share/fonts/truetype/custom
