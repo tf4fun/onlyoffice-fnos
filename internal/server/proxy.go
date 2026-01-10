@@ -56,6 +56,15 @@ func (s *Server) setupProxy() {
 			scheme = xScheme
 		}
 
+		// Normalize WebSocket schemes to HTTP schemes
+		// Document Server expects http/https, not ws/wss
+		switch scheme {
+		case "wss":
+			scheme = "https"
+		case "ws":
+			scheme = "http"
+		}
+
 		// If host looks like an external domain (not IP, not localhost), assume HTTPS
 		// This handles cases where upstream proxy doesn't set X-Forwarded-Proto
 		if scheme == "http" && !isInternalHost(host) {
