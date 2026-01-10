@@ -1,14 +1,5 @@
 {
     ".url": {
-        "onlyoffice.settings": {
-            "title": "OnlyOffice 连接器",
-            "icon": "images/icon_{0}.png",
-            "type": "iframe",
-            "protocol": "http",
-            "port": "10099",
-            "url": "/",
-            "allUsers": false
-        },
         "onlyoffice.editor": {
             "title": "使用 OnlyOffice 打开",
             "icon": "images/icon_{0}.png",

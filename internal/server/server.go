@@ -92,16 +92,8 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Page routes
-	s.router.Get("/", s.handleSettingsPage)
 	s.router.Get("/editor", s.handleEditorPage)
 	s.router.Get("/convert", s.handleConvertPage)
-
-	// API routes
-	s.router.Route("/api", func(r chi.Router) {
-		r.Get("/settings", s.handleGetSettings)
-		r.Post("/settings/generate-key", s.handleGenerateKey)
-		r.Post("/settings/validate", s.handleValidateConnection)
-	})
 
 	// Document Server integration routes
 	s.router.Get("/download", s.handleDownload)

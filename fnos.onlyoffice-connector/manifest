@@ -10,10 +10,9 @@ maintainer_url  = https://github.com/tf4fun
 distributor     = tf4fun
 distributor_url = https://github.com/tf4fun
 
-desktop_uidir           = ui
-desktop_applaunchname   = onlyoffice.settings
+desktop_uidir   = ui
 
 service_port    = 10099
 checkport       = true
 
-install_type = root
+install_type    = root

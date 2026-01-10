@@ -5,8 +5,8 @@
 
 LOG_FILE="${TRIM_PKGVAR}/info.log"
 PID_FILE="${TRIM_PKGVAR}/app.pid"
+ENV_FILE="${TRIM_PKGVAR}/env.conf"
 BINARY="${TRIM_APPDEST}/server/onlyoffice-connector"
-CONFIG_FILE="${TRIM_PKGVAR}/config.json"
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
@@ -42,18 +42,29 @@ start_process() {
 
     log_msg "Starting OnlyOffice Connector..."
     log_msg "Binary: $BINARY"
-    log_msg "Config: $CONFIG_FILE"
     log_msg "Port: ${TRIM_SERVICE_PORT:-10099}"
-    log_msg "Data: ${TRIM_PKGVAR}"
 
     # Ensure var directory exists
     mkdir -p "${TRIM_PKGVAR}"
 
+    # Load environment variables from env file if exists
+    if [ -f "${ENV_FILE}" ]; then
+        log_msg "Loading environment from ${ENV_FILE}"
+        source "${ENV_FILE}"
+    fi
+
+    # Export environment variables for the application
+    export DOCUMENT_SERVER_URL="${DOCUMENT_SERVER_URL:-}"
+    export DOCUMENT_SERVER_SECRET="${DOCUMENT_SERVER_SECRET:-}"
+    export BASE_URL="${BASE_URL:-}"
+
+    log_msg "DOCUMENT_SERVER_URL: ${DOCUMENT_SERVER_URL}"
+    log_msg "BASE_URL: ${BASE_URL}"
+    log_msg "JWT Secret: ${DOCUMENT_SERVER_SECRET:+configured}"
+
     # Start the application in background
     "${BINARY}" \
-        -config "$CONFIG_FILE" \
         -port "${TRIM_SERVICE_PORT:-10099}" \
-        -data "${TRIM_PKGVAR}" \
         >> "$LOG_FILE" 2>&1 &
 
     # Save PID

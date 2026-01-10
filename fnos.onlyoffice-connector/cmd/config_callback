@@ -1,3 +1,21 @@
 #!/bin/bash
 # Post-configuration script
+# Update environment file with new wizard configuration
+
+ENV_FILE="${TRIM_PKGVAR}/env.conf"
+
+# Ensure var directory exists
+mkdir -p "${TRIM_PKGVAR}"
+
+# Save environment variables from wizard
+cat > "${ENV_FILE}" << EOF
+# OnlyOffice Connector Configuration
+# Updated by config wizard
+
+DOCUMENT_SERVER_URL="${wizard_document_server_url:-}"
+DOCUMENT_SERVER_SECRET="${wizard_document_server_secret:-}"
+BASE_URL="${wizard_base_url:-}"
+EOF
+
+echo "Configuration updated in ${ENV_FILE}"
 exit 0

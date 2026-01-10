@@ -7,16 +7,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"onlyoffice-fnos/internal/config"
 	"onlyoffice-fnos/internal/file"
 	"onlyoffice-fnos/internal/format"
 	"onlyoffice-fnos/web"
 )
-
-// SettingsPageData holds data for the settings page template
-type SettingsPageData struct {
-	Settings *config.Settings
-}
 
 // EditorPageData holds data for the editor page template
 type EditorPageData struct {
@@ -39,22 +33,20 @@ type ConvertPageData struct {
 
 // ErrorPageData holds data for the error page template
 type ErrorPageData struct {
-	Title        string
-	Message      string
-	ErrorCode    string
-	Details      string
-	RetryURL     string
-	BackURL      string
-	BackText     string
-	ShowSettings bool
+	Title     string
+	Message   string
+	ErrorCode string
+	Details   string
+	RetryURL  string
+	BackURL   string
+	BackText  string
 }
 
 // templates holds parsed templates
 type templates struct {
-	settings *template.Template
-	editor   *template.Template
-	convert  *template.Template
-	error    *template.Template
+	editor  *template.Template
+	convert *template.Template
+	error   *template.Template
 }
 
 // loadTemplates loads all HTML templates from embedded filesystem
@@ -62,11 +54,6 @@ func (s *Server) loadTemplates() error {
 	var err error
 
 	s.templates = &templates{}
-
-	s.templates.settings, err = template.ParseFS(web.Templates, "templates/settings.tmpl")
-	if err != nil {
-		return err
-	}
 
 	s.templates.editor, err = template.ParseFS(web.Templates, "templates/editor.tmpl")
 	if err != nil {
@@ -86,34 +73,6 @@ func (s *Server) loadTemplates() error {
 	return nil
 }
 
-// handleSettingsPage handles GET / - renders the settings page
-func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request) {
-	settings := s.settings
-	if settings == nil {
-		settings = &config.Settings{}
-	}
-
-	data := &SettingsPageData{
-		Settings: settings,
-	}
-
-	// If templates are loaded, use them
-	if s.templates != nil && s.templates.settings != nil {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		if err := s.templates.settings.Execute(w, data); err != nil {
-			log.Printf("Failed to render settings template: %v", err)
-			s.renderErrorPage(w, &ErrorPageData{
-				Title:   "渲染错误",
-				Message: "无法渲染设置页面",
-			})
-		}
-		return
-	}
-
-	// Fallback to inline HTML
-	s.renderSettingsPageFallback(w, data)
-}
-
 // handleEditorPage handles GET /editor - renders the editor page
 func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	// Get file path from query parameter
@@ -122,7 +81,6 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "参数错误",
 			Message: "未指定文件路径",
-			BackURL: "/",
 		})
 		return
 	}
@@ -133,9 +91,8 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	// Check settings
 	if s.settings == nil || s.settings.DocumentServerURL == "" {
 		s.renderErrorPage(w, &ErrorPageData{
-			Title:        "配置错误",
-			Message:      "Document Server 地址未配置，请设置 DOCUMENT_SERVER_URL 环境变量。",
-			ShowSettings: true,
+			Title:   "配置错误",
+			Message: "Document Server 地址未配置，请通过 fnOS 应用设置进行配置。",
 		})
 		return
 	}
@@ -145,9 +102,8 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	if effectiveBaseURL == "" || effectiveBaseURL == "http://localhost:10099" {
 		if s.settings.BaseURL == "" {
 			s.renderErrorPage(w, &ErrorPageData{
-				Title:        "配置错误",
-				Message:      "本机回调地址未配置，请设置 BASE_URL 环境变量（如 http://192.168.x.x:10099）。",
-				ShowSettings: true,
+				Title:   "配置错误",
+				Message: "本机回调地址未配置，请通过 fnOS 应用设置进行配置。",
 			})
 			return
 		}
@@ -164,7 +120,6 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "文件错误",
 			Message: errMsg,
-			BackURL: "/",
 		})
 		return
 	}
@@ -211,7 +166,6 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 			Title:   "配置错误",
 			Message: "无法生成编辑器配置",
 			Details: err.Error(),
-			BackURL: "/",
 		})
 		return
 	}
@@ -223,7 +177,6 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "内部错误",
 			Message: "无法序列化编辑器配置",
-			BackURL: "/",
 		})
 		return
 	}
@@ -260,7 +213,6 @@ func (s *Server) handleConvertPage(w http.ResponseWriter, r *http.Request) {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "参数错误",
 			Message: "未指定文件路径",
-			BackURL: "/",
 		})
 		return
 	}
@@ -276,7 +228,6 @@ func (s *Server) handleConvertPage(w http.ResponseWriter, r *http.Request) {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "文件错误",
 			Message: errMsg,
-			BackURL: "/",
 		})
 		return
 	}
@@ -295,7 +246,7 @@ func (s *Server) handleConvertPage(w http.ResponseWriter, r *http.Request) {
 		FilePathEncoded: url.QueryEscape(filePath),
 		SourceFormat:    fileInfo.Extension,
 		TargetFormat:    targetFormat,
-		CanDirectEdit:   false, // Old formats generally can't be directly edited
+		CanDirectEdit:   false,
 	}
 
 	// If templates are loaded, use them
@@ -326,7 +277,6 @@ func (s *Server) renderErrorPage(w http.ResponseWriter, data *ErrorPageData) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := s.templates.error.Execute(w, data); err != nil {
 			log.Printf("Failed to render error template: %v", err)
-			// Ultimate fallback
 			http.Error(w, data.Message, http.StatusInternalServerError)
 		}
 		return
@@ -416,54 +366,6 @@ func (s *Server) buildCallbackURL(filePath string) string {
 
 // Fallback renderers for when templates are not available
 
-func (s *Server) renderSettingsPageFallback(w http.ResponseWriter, data *SettingsPageData) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	html := `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>OnlyOffice Connector 设置</title>
-    <script src="/static/htmx.min.js"></script>
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 10px 20px; background: #4a90d9; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px 5px 5px 0; }
-        .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ddd; }
-        .message { padding: 10px; border-radius: 4px; margin-top: 10px; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-        .input-row { display: flex; gap: 10px; }
-        .input-row input { flex: 1; }
-    </style>
-</head>
-<body>
-    <h1>OnlyOffice Connector 设置</h1>
-    <form hx-post="/api/settings" hx-target="#message" hx-swap="innerHTML">
-        <div class="form-group">
-            <label>Document Server 地址</label>
-            <div class="input-row">
-                <input type="url" id="documentServerUrl" name="documentServerUrl" value="` + data.Settings.DocumentServerURL + `" placeholder="http://192.168.1.100:10099">
-                <button type="button" class="btn-secondary" hx-post="/api/settings/validate" hx-include="#documentServerUrl" hx-target="#status">测试连接</button>
-            </div>
-            <div id="status"></div>
-        </div>
-        <div class="form-group">
-            <label>JWT 密钥</label>
-            <div class="input-row">
-                <input type="text" id="secret" name="documentServerSecret" value="` + data.Settings.DocumentServerSecret + `">
-                <button type="button" class="btn-secondary" hx-post="/api/settings/generate-key" hx-target="#secret" hx-swap="outerHTML">重新生成</button>
-            </div>
-        </div>
-        <button type="submit">保存设置</button>
-        <div id="message"></div>
-    </form>
-</body>
-</html>`
-	w.Write([]byte(html))
-}
-
 func (s *Server) renderEditorPageFallback(w http.ResponseWriter, data *EditorPageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	html := `<!DOCTYPE html>
@@ -510,7 +412,6 @@ func (s *Server) renderConvertPageFallback(w http.ResponseWriter, data *ConvertP
         <button type="submit" class="btn btn-primary">转换为 ` + data.TargetFormat + ` 并编辑</button>
     </form>
     <a href="/editor?path=` + data.FilePathEncoded + `&mode=view" class="btn btn-secondary">以只读模式查看</a>
-    <a href="/">← 返回设置</a>
 </body>
 </html>`
 	w.Write([]byte(html))
@@ -518,10 +419,6 @@ func (s *Server) renderConvertPageFallback(w http.ResponseWriter, data *ConvertP
 
 func (s *Server) renderErrorPageFallback(w http.ResponseWriter, data *ErrorPageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	backURL := data.BackURL
-	if backURL == "" {
-		backURL = "/"
-	}
 	html := `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -530,13 +427,11 @@ func (s *Server) renderErrorPageFallback(w http.ResponseWriter, data *ErrorPageD
     <style>
         body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; text-align: center; }
         .error-box { background: #f8d7da; color: #721c24; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .btn { display: inline-block; padding: 10px 20px; background: #4a90d9; color: white; text-decoration: none; border-radius: 4px; }
     </style>
 </head>
 <body>
     <h1>` + data.Title + `</h1>
     <div class="error-box">` + data.Message + `</div>
-    <a href="` + backURL + `" class="btn">返回</a>
 </body>
 </html>`
 	w.Write([]byte(html))

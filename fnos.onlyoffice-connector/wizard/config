@@ -1,0 +1,54 @@
+[
+    {
+        "stepTitle": "OnlyOffice 连接器配置",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "修改 OnlyOffice Document Server 的连接配置。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_document_server_url",
+                "label": "Document Server 地址",
+                "initValue": "",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 Document Server 地址"
+                    },
+                    {
+                        "pattern": "^https?://",
+                        "message": "请输入有效的 URL（以 http:// 或 https:// 开头）"
+                    }
+                ]
+            },
+            {
+                "type": "text",
+                "field": "wizard_document_server_secret",
+                "label": "JWT 密钥（可选）",
+                "initValue": "",
+                "rules": []
+            },
+            {
+                "type": "text",
+                "field": "wizard_base_url",
+                "label": "本机回调地址",
+                "initValue": "",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入本机回调地址"
+                    },
+                    {
+                        "pattern": "^https?://",
+                        "message": "请输入有效的 URL（以 http:// 或 https:// 开头）"
+                    }
+                ]
+            },
+            {
+                "type": "tips",
+                "helpText": "修改配置后需要重启应用才能生效。"
+            }
+        ]
+    }
+]
