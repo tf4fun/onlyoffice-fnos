@@ -1,0 +1,57 @@
+networks:
+  onlyoffice-net:
+    name: onlyoffice-net
+    driver: bridge
+
+services:
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    depends_on:
+      - onlyoffice-documentserver
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-documentserver
+      - DOCUMENT_SERVER_SECRET=ca64a350c233f2be2c44a1051d068a56
+      - BASE_URL=http://onlyoffice-connector:10099
+    ports:
+      - '10099:10099'
+    volumes:
+      - /vol00:/vol00
+      - /vol1:/vol1
+      - /vol2:/vol2
+    labels:
+      watchcow.enable: "true"
+      watchcow.editor.service_port: "10099"
+      watchcow.editor.protocol: "http"
+      watchcow.editor.path: "/editor"
+      watchcow.editor.ui_type: "iframe"
+      watchcow.editor.all_users: "true"
+      watchcow.editor.title: "使用 OnlyOffice 打开"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv"
+      watchcow.editor.icon: "file://onlyoffice.png"
+      watchcow.editor.no_display: "true"
+
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice-documentserver
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=ca64a350c233f2be2c44a1051d068a56
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
+      interval: 30s
+      retries: 5
+      start_period: 60s
+      timeout: 10s
+    volumes:
+       - ./volumes/data:/var/www/onlyoffice/Data
+       - ./volumes/log:/var/log/onlyoffice

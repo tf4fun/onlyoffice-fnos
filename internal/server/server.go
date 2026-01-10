@@ -78,6 +78,9 @@ func New(cfg *Config) *Server {
 	// Setup routes
 	s.setupRoutes()
 
+	// Setup Document Server proxy
+	s.setupProxy()
+
 	return s
 }
 

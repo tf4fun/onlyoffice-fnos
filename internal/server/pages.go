@@ -380,7 +380,7 @@ func (s *Server) renderEditorPageFallback(w http.ResponseWriter, data *EditorPag
 </head>
 <body>
     <div id="editor-container"></div>
-    <script src="` + data.DocumentServerURL + `/web-apps/apps/api/documents/api.js"></script>
+    <script src="/docserver/web-apps/apps/api/documents/api.js"></script>
     <script>new DocsAPI.DocEditor("editor-container", ` + string(data.ConfigJSON) + `);</script>
 </body>
 </html>`
