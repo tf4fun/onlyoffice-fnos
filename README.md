@@ -22,54 +22,59 @@
 
 ## 安装部署
 
-### 1. 部署 OnlyOffice Document Server
+### 1. 使用 Docker Compose 一键部署
 
-在 fnOS 的 Docker 管理中创建 `docker-compose.yml`:
+复制 `.env.example` 为 `.env` 并配置外网域名：
 
-```yaml
-services:
-  onlyoffice-documentserver:
-    image: onlyoffice/documentserver:latest
-    container_name: onlyoffice-documentserver
-    environment:
-      - JWT_ENABLED=true
-      - JWT_SECRET=your-secret-key-change-me  # 请修改为你自己的密钥
-      - JWT_HEADER=Authorization
-      - JWT_IN_BODY=true
-    ports:
-      - "10098:80"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
-      interval: 30s
-      retries: 5
-      start_period: 60s
-      timeout: 10s
-    restart: always
-    stop_grace_period: 60s
-    volumes:
-      - ./data:/var/www/onlyoffice/Data
-      - ./log:/var/log/onlyoffice
+```bash
+cp .env.example .env
 ```
 
-启动服务:
+编辑 `.env` 文件：
+
+```bash
+# 外网域名后缀，用于判断是否走 HTTPS
+# 匹配 *.example.com 和 example.com
+EXTERNAL_DOMAIN=.your-domain.com
+```
+
+启动所有服务：
 
 ```bash
 docker compose up -d
 ```
 
-### 2. 安装 OnlyOffice Connector
+这会启动三个容器：
+- `onlyoffice-nginx`: 反向代理入口 (端口 9080)
+- `onlyoffice-connector`: 连接器服务
+- `onlyoffice-doc-svr`: OnlyOffice Document Server
+
+### 2. 访问服务
+
+- 内网访问: `http://your-nas-ip:9080/editor?path=/path/to/file.docx`
+- 外网访问: `https://your-domain.com:9080/editor?path=/path/to/file.docx`
+
+nginx 会根据域名自动判断协议：
+- 匹配 `EXTERNAL_DOMAIN` 的请求 → `X-Forwarded-Proto: https`
+- 其他请求（内网 IP）→ `X-Forwarded-Proto: http`
+
+### 3. 安装 fnOS 连接器（可选）
+
+如果使用 fnOS：
 
 1. 前往 [Releases](https://github.com/tf4fun/onlyoffice-fnos/releases) 页面下载最新的 `.fpk` 安装包
 2. 在 fnOS 应用中心选择「手动安装」，上传 `.fpk` 文件完成安装
-3. 安装完成后，在应用列表中打开「OnlyOffice 连接器」进行配置
 
-### 3. 配置连接器
+### 4. 配置说明
 
-打开连接器设置页面，填写以下信息:
+`compose.yaml` 中的关键配置：
 
-- **Document Server URL**: `http://your-nas-ip:10098`
-- **JWT Secret**: 与 docker-compose 中设置的 `JWT_SECRET` 保持一致
-- **Base URL**: `http://your-nas-ip:10099` (连接器的回调地址)
+| 环境变量 | 说明 |
+|---------|------|
+| `EXTERNAL_DOMAIN` | 外网域名后缀，用于判断 HTTPS |
+| `DOCUMENT_SERVER_URL` | Document Server 内网地址 |
+| `DOCUMENT_SERVER_SECRET` | JWT 密钥，需与 Document Server 一致 |
+| `DOC_SERVER_PATH` | 前端访问 Document Server 的路径前缀 |
 
 ## 使用方法
 
