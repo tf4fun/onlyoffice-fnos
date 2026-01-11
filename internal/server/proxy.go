@@ -75,9 +75,12 @@ func (s *Server) setupProxy() {
 		log.Printf("Proxy: path=%s, scheme=%s, host=%s, X-Forwarded-Proto=%s",
 			req.URL.Path, scheme, host, req.Header.Get("X-Forwarded-Proto"))
 
-		// Critical: Tell OnlyOffice its virtual path
-		req.Header.Set("X-Forwarded-Host", host+"/docserver")
+		// Set proper forwarded headers
+		// X-Forwarded-Host should only contain the host (not path!)
+		req.Header.Set("X-Forwarded-Host", host)
 		req.Header.Set("X-Forwarded-Proto", scheme)
+		// X-Forwarded-Prefix tells Document Server its virtual path prefix
+		req.Header.Set("X-Forwarded-Prefix", "/docserver")
 	}
 
 	// Handle proxy errors

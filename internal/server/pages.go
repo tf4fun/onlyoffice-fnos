@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"onlyoffice-fnos/internal/file"
 	"onlyoffice-fnos/internal/format"
@@ -17,6 +18,7 @@ type EditorPageData struct {
 	Title             string
 	ConfigJSON        template.JS
 	DocumentServerURL string
+	DocServerAPIURL   string // Absolute URL for Document Server API (scheme + host + /docserver)
 	Lang              string
 }
 
@@ -185,6 +187,7 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 		Title:             fileInfo.Name,
 		ConfigJSON:        template.JS(configJSON),
 		DocumentServerURL: s.settings.DocumentServerURL,
+		DocServerAPIURL:   s.buildDocServerAPIURL(r),
 		Lang:              lang,
 	}
 
@@ -364,6 +367,32 @@ func (s *Server) buildCallbackURL(filePath string) string {
 	return baseURL + "/callback?path=" + url.QueryEscape(filePath)
 }
 
+// buildDocServerAPIURL builds the absolute URL for Document Server API
+// Uses the request's scheme and host to ensure the URL is accessible from the client
+func (s *Server) buildDocServerAPIURL(r *http.Request) string {
+	// Determine scheme
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if fwdProto := r.Header.Get("X-Forwarded-Proto"); fwdProto != "" {
+		scheme = fwdProto
+	}
+
+	// Determine host - prefer X-Forwarded-Host for reverse proxy scenarios
+	host := r.Host
+	if fwdHost := r.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+		host = fwdHost
+	}
+
+	// Remove any path suffix that might be in X-Forwarded-Host (e.g., "/docserver")
+	if idx := strings.Index(host, "/"); idx != -1 {
+		host = host[:idx]
+	}
+
+	return scheme + "://" + host + "/docserver"
+}
+
 // Fallback renderers for when templates are not available
 
 func (s *Server) renderEditorPageFallback(w http.ResponseWriter, data *EditorPageData) {
@@ -380,7 +409,7 @@ func (s *Server) renderEditorPageFallback(w http.ResponseWriter, data *EditorPag
 </head>
 <body>
     <div id="editor-container"></div>
-    <script src="/docserver/web-apps/apps/api/documents/api.js"></script>
+    <script src="` + data.DocServerAPIURL + `/web-apps/apps/api/documents/api.js"></script>
     <script>new DocsAPI.DocEditor("editor-container", ` + string(data.ConfigJSON) + `);</script>
 </body>
 </html>`
