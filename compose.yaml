@@ -1,0 +1,61 @@
+networks:
+  onlyoffice-net:
+    name: onlyoffice-net
+    driver: bridge
+
+services:
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    depends_on:
+      - onlyoffice-documentserver
+    environment:
+      - DOCUMENT_SERVER_URL=http://192.168.1.x:10098        # 内网访问地址
+      # - DOCUMENT_SERVER_PUB_URL=https://office.example.com  # 外网访问地址（可选，配置后自动根据请求来源选择）
+      - DOCUMENT_SERVER_SECRET=your-secret-key-change-me
+      - BASE_URL=http://192.168.1.x:10099
+    ports:
+      - '10099:10099'
+    volumes:
+      - /vol1:/vol1  # 根据实际存储卷调整
+    labels:
+      watchcow.enable: "true"
+      watchcow.editor.service_port: "10099"
+      watchcow.editor.protocol: "http"
+      watchcow.editor.path: "/editor"
+      watchcow.editor.ui_type: "iframe"
+      watchcow.editor.all_users: "true"
+      watchcow.editor.title: "使用 OnlyOffice 打开"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
+      watchcow.editor.icon: "file://onlyoffice.png"
+      watchcow.editor.no_display: "true"
+
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice-documentserver
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    stop_grace_period: 60s
+    ports:
+      - '10098:80'  # 暴露端口供客户端直接访问
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=your-secret-key-change-me  # 与 connector 保持一致
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
+      interval: 30s
+      retries: 5
+      start_period: 60s
+      timeout: 10s
+    volumes:
+      - ./volumes/data:/var/www/onlyoffice/Data
+      - ./volumes/log:/var/log/onlyoffice
+      - ./volumes/lib:/var/lib/onlyoffice
+      - ./volumes/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+      - ./volumes/fonts:/usr/share/fonts/truetype/custom

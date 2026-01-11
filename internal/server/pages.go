@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"onlyoffice-fnos/internal/file"
 	"onlyoffice-fnos/internal/format"
@@ -184,7 +186,7 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	data := &EditorPageData{
 		Title:             fileInfo.Name,
 		ConfigJSON:        template.JS(configJSON),
-		DocumentServerURL: s.settings.DocumentServerURL,
+		DocumentServerURL: s.getDocServerURL(r),
 		Lang:              lang,
 	}
 
@@ -435,4 +437,62 @@ func (s *Server) renderErrorPageFallback(w http.ResponseWriter, data *ErrorPageD
 </body>
 </html>`
 	w.Write([]byte(html))
+}
+
+
+// getDocServerURL returns the appropriate Document Server URL based on request origin
+// If both internal and public URLs are configured, it chooses based on whether the request
+// comes from an internal network (private IP) or external network (domain name)
+func (s *Server) getDocServerURL(r *http.Request) string {
+	// If only one URL is configured, use it directly
+	hasInternal := s.settings.DocumentServerURL != ""
+	hasPublic := s.settings.DocumentServerPubURL != ""
+
+	if hasInternal && !hasPublic {
+		return s.settings.DocumentServerURL
+	}
+	if hasPublic && !hasInternal {
+		return s.settings.DocumentServerPubURL
+	}
+
+	// Both URLs configured - determine which to use based on request origin
+	host := r.Host
+	if fwdHost := r.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+		host = fwdHost
+	}
+	// Remove any path suffix
+	if idx := strings.Index(host, "/"); idx != -1 {
+		host = host[:idx]
+	}
+	// Remove port for comparison
+	hostWithoutPort := host
+	if idx := strings.LastIndex(host, ":"); idx != -1 {
+		hostWithoutPort = host[:idx]
+	}
+
+	// Check if request is from internal network
+	if isInternalHost(hostWithoutPort) {
+		return s.settings.DocumentServerURL
+	}
+
+	// External request - use public URL
+	return s.settings.DocumentServerPubURL
+}
+
+// isInternalHost checks if the host looks like an internal/local address
+func isInternalHost(host string) bool {
+	// Check for localhost
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+
+	// Check if it's an IP address
+	ip := net.ParseIP(host)
+	if ip != nil {
+		// Check for private IP ranges
+		return ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast()
+	}
+
+	// It's a domain name - assume external
+	return false
 }
