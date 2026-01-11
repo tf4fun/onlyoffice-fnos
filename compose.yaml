@@ -3,27 +3,64 @@ networks:
     name: onlyoffice-net
     driver: bridge
 
+configs:
+  traefik_yaml:
+    content: |
+      http:
+        routers:
+          onlyoffice-doc-svr:
+            rule: "PathPrefix(`/doc-svr`)"
+            service: onlyoffice-doc-svr
+            entryPoints:
+              - web
+            middlewares:
+              - onlyoffice-headers
+            priority: 10
+          onlyoffice-connector:
+            rule: "PathPrefix(`/`)"
+            service: onlyoffice-connector
+            entryPoints:
+              - web
+            priority: 1
+        services:
+          onlyoffice-doc-svr:
+            loadBalancer:
+              servers:
+                - url: "http://onlyoffice-doc-svr:80"
+          onlyoffice-connector:
+            loadBalancer:
+              servers:
+                - url: "http://onlyoffice-connector:10099"
+        middlewares:
+          onlyoffice-headers:
+            headers:
+              customRequestHeaders:
+                X-Forwarded-Prefix: "/doc-svr"
+              accessControlAllowOriginList:
+                - "*"
+
 services:
-  onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:main
-    container_name: onlyoffice-connector
+  onlyoffice-traefik:
+    image: traefik:latest
+    container_name: onlyoffice-traefik
     networks:
       - onlyoffice-net
     restart: unless-stopped
-    depends_on:
-      - onlyoffice-documentserver
-    environment:
-      - DOCUMENT_SERVER_URL=http://192.168.1.x:10098        # 内网访问地址
-      # - DOCUMENT_SERVER_PUB_URL=https://office.example.com  # 外网访问地址（可选，配置后自动根据请求来源选择）
-      - DOCUMENT_SERVER_SECRET=your-secret-key-change-me
-      - BASE_URL=http://192.168.1.x:10099
+    configs:
+      - source: traefik_yaml
+        target: /config/traefik.yaml
+    command:
+      - --api=true
+      - --accesslog=true
+      - --log.level=DEBUG
+      - --providers.file.filename=/config/traefik.yaml
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
     ports:
-      - '10099:10099'
-    volumes:
-      - /vol1:/vol1  # 根据实际存储卷调整
+      - '9080:80'
     labels:
       watchcow.enable: "true"
-      watchcow.editor.service_port: "10099"
+      watchcow.editor.service_port: "9080"
       watchcow.editor.protocol: "http"
       watchcow.editor.path: "/editor"
       watchcow.editor.ui_type: "iframe"
@@ -33,18 +70,36 @@ services:
       watchcow.editor.icon: "file://onlyoffice.png"
       watchcow.editor.no_display: "true"
 
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80  # 内网直连，用于后端 API 调用
+      - DOCUMENT_SERVER_SECRET=ca64a350c233f2be2c44a1051d068a56
+      - BASE_URL=http://onlyoffice-connector:10099
+      - DOC_SERVER_PATH=/doc-svr  # 前端相对路径
+    # ports:
+    #   - '10099:10099'
+    volumes:
+      - /vol00:/vol00
+      - /vol1:/vol1
+      - /vol2:/vol2
+
   onlyoffice-documentserver:
     image: onlyoffice/documentserver:latest
-    container_name: onlyoffice-documentserver
+    container_name: onlyoffice-doc-svr
     networks:
       - onlyoffice-net
     restart: unless-stopped
     stop_grace_period: 60s
-    ports:
-      - '10098:80'  # 暴露端口供客户端直接访问
+    # ports:
+    #   - '10098:80'  # 暴露端口供外部访问
     environment:
       - JWT_ENABLED=true
-      - JWT_SECRET=your-secret-key-change-me  # 与 connector 保持一致
+      - JWT_SECRET=ca64a350c233f2be2c44a1051d068a56
       - JWT_HEADER=Authorization
       - JWT_IN_BODY=true
     healthcheck:

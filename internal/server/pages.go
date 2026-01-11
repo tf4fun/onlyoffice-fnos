@@ -16,10 +16,10 @@ import (
 
 // EditorPageData holds data for the editor page template
 type EditorPageData struct {
-	Title             string
-	ConfigJSON        template.JS
-	DocumentServerURL string
-	Lang              string
+	Title         string
+	ConfigJSON    template.JS
+	DocServerPath string // Frontend path for loading JS (e.g., "/doc-svr")
+	Lang          string
 }
 
 // ConvertPageData holds data for the convert page template
@@ -91,10 +91,10 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	mode := r.URL.Query().Get("mode")
 
 	// Check settings
-	if s.settings == nil || s.settings.DocumentServerURL == "" {
+	if s.settings == nil {
 		s.renderErrorPage(w, &ErrorPageData{
 			Title:   "配置错误",
-			Message: "Document Server 地址未配置，请通过 fnOS 应用设置进行配置。",
+			Message: "应用配置未初始化，请通过 fnOS 应用设置进行配置。",
 		})
 		return
 	}
@@ -184,10 +184,10 @@ func (s *Server) handleEditorPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &EditorPageData{
-		Title:             fileInfo.Name,
-		ConfigJSON:        template.JS(configJSON),
-		DocumentServerURL: s.getDocServerURL(r),
-		Lang:              lang,
+		Title:         fileInfo.Name,
+		ConfigJSON:    template.JS(configJSON),
+		DocServerPath: s.getDocServerFrontendPath(),
+		Lang:          lang,
 	}
 
 	// If templates are loaded, use them
@@ -382,7 +382,7 @@ func (s *Server) renderEditorPageFallback(w http.ResponseWriter, data *EditorPag
 </head>
 <body>
     <div id="editor-container"></div>
-    <script src="` + data.DocumentServerURL + `/web-apps/apps/api/documents/api.js"></script>
+    <script src="` + data.DocServerPath + `/web-apps/apps/api/documents/api.js"></script>
     <script>new DocsAPI.DocEditor("editor-container", ` + string(data.ConfigJSON) + `);</script>
 </body>
 </html>`
@@ -439,6 +439,16 @@ func (s *Server) renderErrorPageFallback(w http.ResponseWriter, data *ErrorPageD
 	w.Write([]byte(html))
 }
 
+
+// getDocServerFrontendPath returns the frontend path for Document Server JS
+// This is a relative path that the browser will resolve against the current host
+func (s *Server) getDocServerFrontendPath() string {
+	if s.settings != nil && s.settings.DocServerPath != "" {
+		return s.settings.DocServerPath
+	}
+	// Default to /doc-svr if not configured
+	return "/doc-svr"
+}
 
 // getDocServerURL returns the appropriate Document Server URL based on request origin
 // If both internal and public URLs are configured, it chooses based on whether the request

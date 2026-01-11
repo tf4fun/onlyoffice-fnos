@@ -27,5 +27,6 @@ EXPOSE 10099
 ENV DOCUMENT_SERVER_URL=""
 ENV DOCUMENT_SERVER_SECRET=""
 ENV BASE_URL=""
+ENV DOC_SERVER_PATH="/doc-svr"
 
 CMD ["./onlyoffice-connector", "-port", "10099"]
