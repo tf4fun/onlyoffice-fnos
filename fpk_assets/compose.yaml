@@ -7,18 +7,17 @@ x-fnpack:
   cmd/install_callback: |
     #!/bin/bash
     APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-    COMPOSE_FILE="$APP_DIR/docker/compose.yaml"
+    COMPOSE_FILE="$APP_DIR/app/docker/docker-compose.yaml"
     
-    # 动态生成 connector 的 volume 挂载
-    VOLUME_ARGS=""
-    for vol in /vol*; do
-      if [ -d "$vol" ]; then
-        VOLUME_ARGS="${VOLUME_ARGS}      - $vol:$vol\n"
-      fi
-    done
-    
-    # 替换 compose.yaml 中的 volumes 占位符
-    sed -i "s|# __DYNAMIC_VOLUMES__|${VOLUME_ARGS}|g" "$COMPOSE_FILE"
+    # 动态生成 connector 的 volume 挂载并追加到 compose.yaml
+    {
+      echo "    volumes:"
+      for vol in /vol*; do
+        if [ -d "$vol" ]; then
+          echo "      - $vol:$vol"
+        fi
+      done
+    } >> "$COMPOSE_FILE"
 
   wizard/install: |
     [
@@ -188,20 +187,6 @@ services:
       - onlyoffice-connector
       - onlyoffice-documentserver
 
-  onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:main
-    container_name: onlyoffice-connector
-    networks:
-      - onlyoffice-net
-    restart: unless-stopped
-    environment:
-      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
-      - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
-      - BASE_URL=http://onlyoffice-connector:10099
-      - DOC_SERVER_PATH=/doc-svr
-    volumes:
-# __DYNAMIC_VOLUMES__
-
   onlyoffice-documentserver:
     image: onlyoffice/documentserver:latest
     container_name: onlyoffice-doc-svr
@@ -226,3 +211,16 @@ services:
       - /var/apps/docker-onlyoffice/shares/onlyoffice/lib:/var/lib/onlyoffice
       - /var/apps/docker-onlyoffice/shares/onlyoffice/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
       - /var/apps/docker-onlyoffice/shares/onlyoffice/fonts:/usr/share/fonts/truetype/custom
+
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
+      - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
+      - BASE_URL=http://onlyoffice-connector:10099
+      - DOC_SERVER_PATH=/doc-svr
+    # volumes 由 install_callback 动态追加
