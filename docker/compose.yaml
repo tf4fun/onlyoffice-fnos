@@ -15,8 +15,8 @@ configs:
           keepalive_timeout  65;
 
           map $$host $$is_external {
-              ~*${EXTERNAL_DOMAIN:-^$}$$  1;
-              default                     0;
+              ~*${EXTERNAL_DOMAIN:-^$$}$$  1;
+              default                       0;
           }
           map $$is_external $$the_scheme {
               1       https;

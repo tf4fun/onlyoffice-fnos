@@ -9,6 +9,12 @@ x-fnpack:
     APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
     COMPOSE_FILE="$APP_DIR/app/docker/docker-compose.yaml"
     
+    # 检查 compose 文件是否存在
+    if [ ! -f "$COMPOSE_FILE" ]; then
+      echo "错误: compose 文件不存在: $COMPOSE_FILE" > "${TRIM_TEMP_LOGFILE}"
+      exit 1
+    fi
+    
     # 动态生成 connector 的 volume 挂载并追加到 compose.yaml
     {
       echo "    volumes:"
@@ -18,6 +24,8 @@ x-fnpack:
         fi
       done
     } >> "$COMPOSE_FILE"
+    
+    exit 0
 
   wizard/install: |
     [
@@ -123,8 +131,8 @@ configs:
           sendfile        on;
           keepalive_timeout  65;
           map $$host $$is_external {
-              ~*${wizard_external_domain:-^$}$$  1;
-              default                            0;
+              ~*${wizard_external_domain:-^$$}$$  1;
+              default                             0;
           }
           map $$is_external $$the_scheme {
               1       https;
