@@ -3,6 +3,11 @@ x-fnpack:
     appname: "docker-onlyoffice"
     desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
     display_name: "OnlyOffice-FNOS"
+    version: "1.0.0"
+    maintainer: "tf4fun"
+    maintainer_url: "https://github.com/tf4fun"
+    distributor: "tf4fun"
+    distributor_url: "https://github.com/tf4fun"
 
   cmd/install_init: |
     #!/bin/bash
