@@ -4,62 +4,6 @@ x-fnpack:
     desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
     display_name: "OnlyOffice"
 
-  cmd/install_callback: |
-    #!/bin/bash
-    exit 0
-
-  cmd/main: |
-    #!/bin/bash
-    COMPOSE_FILE="${TRIM_APPDEST}/docker/docker-compose.yaml"
-    
-    is_docker_running() {
-      DOCKER_NAME=""
-      if [ -f "$COMPOSE_FILE" ]; then
-        DOCKER_NAME=$(cat $COMPOSE_FILE | grep "container_name" | head -1 | awk -F ':' '{print $2}' | xargs)
-      fi
-      if [ -n "$DOCKER_NAME" ]; then
-        docker inspect $DOCKER_NAME 2>/dev/null | grep -q '"Status": "running"' || exit 1
-        return
-      fi
-      exit 1
-    }
-    
-    generate_volumes() {
-      # 删除 #VOLUME_FLAG 及之后的内容
-      sed -i '/#VOLUME_FLAG/,$d' "$COMPOSE_FILE"
-      
-      # 追加新的 volumes
-      {
-        echo "    #VOLUME_FLAG"
-        echo "    volumes:"
-        for vol in /vol*; do
-          if [ -d "$vol" ]; then
-            echo "      - $vol:$vol"
-          fi
-        done
-      } >> "$COMPOSE_FILE"
-    }
-    
-    case $1 in
-      start)
-        generate_volumes
-        exit 0
-        ;;
-      stop)
-        exit 0
-        ;;
-      status)
-        if is_docker_running; then
-          exit 0
-        else
-          exit 3
-        fi
-        ;;
-      *)
-        exit 1
-        ;;
-    esac
-
   wizard/install: |
     [
       {
@@ -213,17 +157,6 @@ services:
     configs:
       - source: nginx_conf
         target: /etc/nginx/nginx.conf
-    labels:
-      watchcow.enable: "true"
-      watchcow.editor.service_port: "9080"
-      watchcow.editor.protocol: "http"
-      watchcow.editor.path: "/editor"
-      watchcow.editor.ui_type: "iframe"
-      watchcow.editor.all_users: "true"
-      watchcow.editor.title: "使用 OnlyOffice 打开"
-      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
-      watchcow.editor.icon: "file://onlyoffice.png"
-      watchcow.editor.no_display: "true"
     depends_on:
       - onlyoffice-connector
       - onlyoffice-documentserver
@@ -264,4 +197,4 @@ services:
       - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
       - BASE_URL=http://onlyoffice-connector:10099
       - DOC_SERVER_PATH=/doc-svr
-    #VOLUME_FLAG
+    volumes: []
