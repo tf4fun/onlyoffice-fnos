@@ -18,41 +18,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Build FPK Package
+        uses: tf4fun/fpk-compose-builder@main
+        id: build
         with:
-          go-version: '1.25'
-
-      - name: Update manifest version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          sed -i "s/^version=.*/version=${VERSION}/" fnos.onlyoffice-connector/manifest
-          echo "Updated manifest version to ${VERSION}"
-          cat fnos.onlyoffice-connector/manifest
-
-      - name: Build binary
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o fnos.onlyoffice-connector/app/server/onlyoffice-connector ./cmd/server
-          chmod +x fnos.onlyoffice-connector/app/server/onlyoffice-connector
-          chmod +x fnos.onlyoffice-connector/cmd/*
-
-      - name: Download fnpack
-        run: |
-          curl -L -o /tmp/fnpack https://static2.fnnas.com/fnpack/fnpack-1.2.0-linux-amd64
-          chmod +x /tmp/fnpack
-
-      - name: Build fpk package
-        run: |
-          cd fnos.onlyoffice-connector
-          /tmp/fnpack build
-          mv *.fpk ../
+          input-dir: ./fpk_assets
+          output-dir: ./dist
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: onlyoffice-connector-package
-          path: "*.fpk"
+          path: ./dist/*.fpk
 
   release:
     needs: build

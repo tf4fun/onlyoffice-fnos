@@ -1,0 +1,228 @@
+x-fnpack:
+  manifest:
+    appname: "docker-onlyoffice"
+    desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
+    display_name: "OnlyOffice"
+
+  cmd/install_callback: |
+    #!/bin/bash
+    APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+    COMPOSE_FILE="$APP_DIR/docker/compose.yaml"
+    
+    # 动态生成 connector 的 volume 挂载
+    VOLUME_ARGS=""
+    for vol in /vol*; do
+      if [ -d "$vol" ]; then
+        VOLUME_ARGS="${VOLUME_ARGS}      - $vol:$vol\n"
+      fi
+    done
+    
+    # 替换 compose.yaml 中的 volumes 占位符
+    sed -i "s|# __DYNAMIC_VOLUMES__|${VOLUME_ARGS}|g" "$COMPOSE_FILE"
+
+  wizard/install: |
+    [
+      {
+        "stepTitle": "OnlyOffice 配置",
+        "items": [
+          {"type": "tips", "helpText": "配置 JWT 密钥用于安全通信，外网域名用于 HTTPS 协议判断。"},
+          {
+            "type": "text",
+            "helpText": "JWT 密钥，用于 Document Server 安全通信",
+            "field": "wizard_jwt_secret",
+            "label": "JWT 密钥",
+            "initValue": "your-secret-key-change-me",
+            "rules": [
+              {"required": true, "message": "此字段不能为空"},
+              {"min": 16, "max": 64, "message": "长度应在16-64个字符之间"}
+            ]
+          },
+          {
+            "type": "text",
+            "helpText": "外网域名后缀，用于判断 HTTPS（如 .example.com），留空则全部走 HTTP",
+            "field": "wizard_external_domain",
+            "label": "外网域名",
+            "initValue": ""
+          }
+        ]
+      }
+    ]
+
+  wizard/config: |
+    [
+      {
+        "stepTitle": "OnlyOffice 配置",
+        "items": [
+          {"type": "tips", "helpText": "修改配置后需要重启应用生效。"},
+          {
+            "type": "text",
+            "helpText": "JWT 密钥，用于 Document Server 安全通信",
+            "field": "wizard_jwt_secret",
+            "label": "JWT 密钥",
+            "rules": [
+              {"required": true, "message": "此字段不能为空"},
+              {"min": 16, "max": 64, "message": "长度应在16-64个字符之间"}
+            ]
+          },
+          {
+            "type": "text",
+            "helpText": "外网域名后缀，用于判断 HTTPS（如 .example.com），留空则全部走 HTTP",
+            "field": "wizard_external_domain",
+            "label": "外网域名"
+          }
+        ]
+      }
+    ]
+
+  app/ui/config: |
+    {
+      ".url": {
+        "docker-onlyoffice.editor": {
+          "title": "使用 OnlyOffice 打开",
+          "icon": "images/icon-{0}.png",
+          "type": "iframe",
+          "protocol": "http",
+          "port": "9080",
+          "url": "/editor",
+          "allUsers": true,
+          "fileTypes": ["docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "pdf", "txt", "rtf", "csv", "djvu", "oxps", "epub", "fb2"],
+          "noDisplay": true
+        }
+      }
+    }
+
+  config/resource: |
+    {
+      "docker-project": {
+        "projects": [{"name": "onlyoffice", "path": "docker"}]
+      },
+      "data-share": {
+        "shares": [
+          {"name": "onlyoffice", "permission": {"rw": ["docker-onlyoffice"]}},
+          {"name": "onlyoffice/data", "permission": {"rw": ["docker-onlyoffice"]}},
+          {"name": "onlyoffice/log", "permission": {"rw": ["docker-onlyoffice"]}},
+          {"name": "onlyoffice/lib", "permission": {"rw": ["docker-onlyoffice"]}},
+          {"name": "onlyoffice/plugins", "permission": {"rw": ["docker-onlyoffice"]}},
+          {"name": "onlyoffice/fonts", "permission": {"rw": ["docker-onlyoffice"]}}
+        ]
+      }
+    }
+
+networks:
+  onlyoffice-net:
+    name: onlyoffice-net
+    driver: bridge
+
+configs:
+  nginx_conf:
+    content: |
+      worker_processes auto;
+      events { worker_connections 1024; }
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+          sendfile        on;
+          keepalive_timeout  65;
+          map $$host $$is_external {
+              ~*${wizard_external_domain:-^$}$$  1;
+              default                            0;
+          }
+          map $$is_external $$the_scheme {
+              1       https;
+              default http;
+          }
+          upstream doc-svr { server onlyoffice-doc-svr:80; }
+          upstream connector { server onlyoffice-connector:10099; }
+          server {
+              listen 80;
+              server_name _;
+              location /doc-svr/ {
+                  rewrite ^/doc-svr/(.*)$$ /$$1 break;
+                  proxy_pass http://doc-svr;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Host $$http_host/doc-svr;
+                  proxy_set_header X-Forwarded-Proto $$the_scheme;
+              }
+              location / {
+                  proxy_pass http://connector;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$the_scheme;
+              }
+          }
+      }
+
+services:
+  onlyoffice-nginx:
+    image: nginx:alpine
+    container_name: onlyoffice-nginx
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    ports:
+      - 9080:80
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    labels:
+      watchcow.enable: "true"
+      watchcow.editor.service_port: "9080"
+      watchcow.editor.protocol: "http"
+      watchcow.editor.path: "/editor"
+      watchcow.editor.ui_type: "iframe"
+      watchcow.editor.all_users: "true"
+      watchcow.editor.title: "使用 OnlyOffice 打开"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
+      watchcow.editor.icon: "file://onlyoffice.png"
+      watchcow.editor.no_display: "true"
+    depends_on:
+      - onlyoffice-connector
+      - onlyoffice-documentserver
+
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
+      - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
+      - BASE_URL=http://onlyoffice-connector:10099
+      - DOC_SERVER_PATH=/doc-svr
+    volumes:
+# __DYNAMIC_VOLUMES__
+
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice-doc-svr
+    networks:
+      - onlyoffice-net
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${wizard_jwt_secret}
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
+      interval: 30s
+      retries: 5
+      start_period: 60s
+      timeout: 10s
+    volumes:
+      - /var/apps/docker-onlyoffice/shares/onlyoffice/data:/var/www/onlyoffice/Data
+      - /var/apps/docker-onlyoffice/shares/onlyoffice/log:/var/log/onlyoffice
+      - /var/apps/docker-onlyoffice/shares/onlyoffice/lib:/var/lib/onlyoffice
+      - /var/apps/docker-onlyoffice/shares/onlyoffice/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+      - /var/apps/docker-onlyoffice/shares/onlyoffice/fonts:/usr/share/fonts/truetype/custom

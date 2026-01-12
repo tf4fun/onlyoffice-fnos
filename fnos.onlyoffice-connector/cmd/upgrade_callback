@@ -1,3 +1,0 @@
-#!/bin/bash
-# Post-upgrade script
-exit 0

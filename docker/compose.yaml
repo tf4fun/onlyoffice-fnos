@@ -15,8 +15,8 @@ configs:
           keepalive_timeout  65;
 
           map $$host $$is_external {
-              ~*${EXTERNAL_DOMAIN}$$  1;
-              default                 0;
+              ~*${EXTERNAL_DOMAIN:-^$}$$  1;
+              default                     0;
           }
           map $$is_external $$the_scheme {
               1       https;
@@ -83,14 +83,14 @@ services:
       - onlyoffice-documentserver
 
   onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:dev-proxy
+    image: xingheliufang/onlyoffice-fnos:main
     container_name: onlyoffice-connector
     networks:
       - onlyoffice-net
     restart: unless-stopped
     environment:
       - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
-      - DOCUMENT_SERVER_SECRET=ca64a350c233f2be2c44a1051d068a56
+      - DOCUMENT_SERVER_SECRET=${JWT_SECRET}
       - BASE_URL=http://onlyoffice-connector:10099
       - DOC_SERVER_PATH=/doc-svr
     volumes:
@@ -107,7 +107,7 @@ services:
     stop_grace_period: 60s
     environment:
       - JWT_ENABLED=true
-      - JWT_SECRET=ca64a350c233f2be2c44a1051d068a56
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_HEADER=Authorization
       - JWT_IN_BODY=true
     healthcheck:

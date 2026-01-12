@@ -24,9 +24,10 @@
 
 ### 1. 使用 Docker Compose 一键部署
 
-复制 `.env.example` 为 `.env` 并配置外网域名：
+进入 docker 目录，复制 `.env.example` 为 `.env` 并配置外网域名：
 
 ```bash
+cd docker
 cp .env.example .env
 ```
 
