@@ -4,6 +4,11 @@ x-fnpack:
     desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
     display_name: "OnlyOffice"
 
+  cmd/config_callback: |
+    #!/bin/bash
+    docker compose -f "${TRIM_APPDEST}/docker/docker-compose.yaml" up -d --force-recreate
+    exit 0
+
   wizard/install: |
     [
       {
