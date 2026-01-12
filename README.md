@@ -48,6 +48,8 @@ JWT_SECRET=your-secret-key-change-me
 docker compose up -d
 ```
 
+> ⚠️ **注意**：请根据你机器上的存储卷路径，修改 `compose.yaml` 中 `onlyoffice-connector` 的 volumes 挂载。默认配置为 `/vol1:/vol1` 等，需要改成你实际的存储路径。
+
 这会启动三个容器：
 - `onlyoffice-nginx`: 反向代理入口 (端口 9080)
 - `onlyoffice-connector`: 连接器服务
