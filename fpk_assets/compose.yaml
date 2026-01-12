@@ -2,7 +2,7 @@ x-fnpack:
   manifest:
     appname: "docker-onlyoffice"
     desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
-    display_name: "OnlyOffice"
+    display_name: "OnlyOffice-FNOS"
 
   cmd/install_init: |
     #!/bin/bash

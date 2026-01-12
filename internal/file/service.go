@@ -159,6 +159,12 @@ func (s *Service) resolvePath(path string) (string, error) {
 		return "", ErrInvalidPath
 	}
 
+	// Normalize path: ensure it starts with "/" for consistency
+	// This handles the difference between iPad (vol2/...) and desktop (/vol2/...)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
 	// Clean the path
 	cleanPath := filepath.Clean(path)
 
