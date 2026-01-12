@@ -4,6 +4,38 @@ x-fnpack:
     desc: "OnlyOffice 文档编辑器 - 在浏览器中编辑 Office 文档"
     display_name: "OnlyOffice"
 
+  cmd/install_init: |
+    #!/bin/bash
+    # install_init: 在 app.tgz 解压前修改 compose.yaml
+
+    COMPOSE_FILE="${TRIM_PKGINST_TEMP_DIR}/docker/docker-compose.yaml"
+
+    # 调试：查看 compose 文件是否存在
+    if [ ! -f "$COMPOSE_FILE" ]; then
+      echo "错误: compose 文件不存在: $COMPOSE_FILE" > "${TRIM_TEMP_LOGFILE}"
+      exit 1
+    fi
+
+    export COMPOSE_FILE
+    python3 >> "${TRIM_TEMP_LOGFILE}" 2>&1 << 'EOF'
+    import yaml
+    import os
+    import glob
+
+    compose_file = os.environ.get('COMPOSE_FILE', '')
+
+    with open(compose_file, 'r') as f:
+        data = yaml.safe_load(f)
+
+    volumes = [f"{v}:{v}" for v in sorted(glob.glob('/vol*')) if os.path.isdir(v)]
+    data['services']['onlyoffice-connector']['volumes'] = volumes
+
+    with open(compose_file, 'w') as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+
+    print(f"volumes 已更新: {volumes}")
+    EOF
+
   wizard/install: |
     [
       {
@@ -27,32 +59,6 @@ x-fnpack:
             "field": "wizard_external_domain",
             "label": "外网域名",
             "initValue": ""
-          }
-        ]
-      }
-    ]
-
-  wizard/config: |
-    [
-      {
-        "stepTitle": "OnlyOffice 配置",
-        "items": [
-          {"type": "tips", "helpText": "修改配置后需要重启应用生效。"},
-          {
-            "type": "text",
-            "helpText": "JWT 密钥，用于 Document Server 安全通信",
-            "field": "wizard_jwt_secret",
-            "label": "JWT 密钥",
-            "rules": [
-              {"required": true, "message": "此字段不能为空"},
-              {"min": 16, "max": 64, "message": "长度应在16-64个字符之间"}
-            ]
-          },
-          {
-            "type": "text",
-            "helpText": "外网域名后缀，用于判断 HTTPS（如 .example.com），留空则全部走 HTTP",
-            "field": "wizard_external_domain",
-            "label": "外网域名"
           }
         ]
       }
@@ -91,7 +97,7 @@ x-fnpack:
         ]
       }
     }
-  
+
   config/privilege: |
     {"defaults": {"run-as": "root"}}
 
@@ -200,4 +206,3 @@ services:
       - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
       - BASE_URL=http://onlyoffice-connector:10099
       - DOC_SERVER_PATH=/doc-svr
-    volumes: []
