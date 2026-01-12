@@ -10,8 +10,7 @@ x-fnpack:
 
   cmd/main: |
     #!/bin/bash
-    APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-    COMPOSE_FILE="$APP_DIR/app/docker/docker-compose.yaml"
+    COMPOSE_FILE="${TRIM_APPDEST}/docker/docker-compose.yaml"
     
     is_docker_running() {
       DOCKER_NAME=""
