@@ -2,6 +2,10 @@
 
 在浏览器中直接编辑 NAS 上的 Office 文档。支持 DOCX、XLSX、PPTX 等格式的在线编辑，以及 DOC、XLS、PPT、ODT、ODS、ODP 等格式的转换和查看。
 
+> ⚠️ **早期开发阶段**
+> 
+> 本应用仍处于非常早期的开发阶段，可能存在各种意料之外的 BUG。不同设备、不同客户端版本也可能产生不同的结果。**不建议在生产环境中使用**。
+
 ![OnlyOffice Connector](README.assets/image.png)
 
 ## 功能特性
@@ -22,9 +26,11 @@
 
 ## 安装部署
 
-### 1. 使用 WatchCow + Docker Compose 快速部署
+### 方式一：WatchCow + Docker Compose（推荐）
 
-进入 docker 目录，复制 `.env.example` 为 `.env` 并配置外网域名：
+最灵活的部署方式，可随时调整配置和存储卷挂载。
+
+进入 docker 目录，复制 `.env.example` 为 `.env` 并配置：
 
 ```bash
 cd docker
@@ -55,23 +61,31 @@ docker compose up -d
 - `onlyoffice-connector`: 连接器服务
 - `onlyoffice-doc-svr`: OnlyOffice Document Server
 
-### 2. 使用
+部署完成后，需要安装 [watchcow](https://github.com/tf4fun/watchcow) 来实现文件管理器右键菜单集成。
+
+### 方式二：FPK 安装包
+
+前往 [Releases](https://github.com/xingheliufang/onlyoffice-fnos/releases) 页面下载最新的 `.fpk` 安装包，在 fnOS 应用中心选择「手动安装」上传即可。
+
+> ⚠️ **FPK 包的局限性**
+> 
+> FPK 包本质上仍是基于 Docker 实现，只是提供了官方的安装引导流程。存在以下限制：
+> 
+> - **存储卷固定**：安装时会自动获取当前系统所有的 `/vol*` 存储卷，但无法处理后续增加或减少的存储卷
+> - **无法重建容器**：fnOS 目前不支持重建应用容器以更新配置
+> - **灵活性较低**：相比方式一，配置调整不够灵活
+> 
+> 如需更高的灵活性，建议使用方式一。
+
+### 方式三：原生应用（开发中）
+
+本应用涉及多个组件（nginx、connector、document server），网络拓扑较为复杂。原生部署方式仍在探索中，待简化后提供。
+
+## 使用
 
 部署完成后，在 fnOS 文件管理器中右键点击 Office 文档，选择「使用 OnlyOffice 打开」即可在浏览器中编辑。
 
-### 3. 关于其他安装方式
-
-> ⚠️ **暂不提供 fpk 安装包**
-> 
-> fnOS 应用安装系统目前无法动态指定共享目录的 volume 挂载，而本应用需要访问用户的文件存储路径，因此暂时无法通过 fpk 方式分发。
-
-> ⚠️ **暂不提供原生二进制部署**
-> 
-> 本应用涉及多个组件（nginx、connector、document server），彼此之间的网络拓扑较为复杂，需要配置的转发规则较多。待简化后再提供给用户。
-
-推荐使用 Docker Compose + [watchcow](https://github.com/tf4fun/watchcow) 方式部署。
-
-### 4. 配置说明
+## 配置说明
 
 `.env` 文件中的配置项：
 
@@ -98,7 +112,7 @@ docker compose up -d
 ├── web/
 │   ├── static/          # 静态资源
 │   └── templates/       # HTML 模板
-└── fpk_assets/          # fnOS 应用包资源（开发中）
+└── fpk_assets/          # fnOS 应用包资源
 ```
 
 ## 开发
