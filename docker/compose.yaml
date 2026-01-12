@@ -69,6 +69,7 @@ services:
         target: /etc/nginx/nginx.conf
     labels:
       watchcow.enable: "true"
+      watchcow.display_name: "onlyoffice-fnos"
       watchcow.editor.service_port: "9080"
       watchcow.editor.protocol: "http"
       watchcow.editor.path: "/editor"
@@ -83,7 +84,7 @@ services:
       - onlyoffice-documentserver
 
   onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:main
+    image: xingheliufang/onlyoffice-fnos:latest
     container_name: onlyoffice-connector
     networks:
       - onlyoffice-net
