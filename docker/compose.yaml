@@ -3,70 +3,25 @@ networks:
     name: onlyoffice-net
     driver: bridge
 
-configs:
-  nginx_conf:
-    content: |
-      worker_processes auto;
-      events { worker_connections 1024; }
-      http {
-          include       /etc/nginx/mime.types;
-          default_type  application/octet-stream;
-          sendfile        on;
-          keepalive_timeout  65;
-
-          map $$host $$is_external {
-              ~*${EXTERNAL_DOMAIN:-^$$}$$  1;
-              default                       0;
-          }
-          map $$is_external $$the_scheme {
-              1       https;
-              default http;
-          }
-          upstream doc-svr { server onlyoffice-doc-svr:80; }
-          upstream connector { server onlyoffice-connector:10099; }
-
-          server {
-              listen 80;
-              server_name _;
-
-              location /doc-svr/ {
-                  rewrite ^/doc-svr/(.*)$$ /$$1 break;
-                  proxy_pass http://doc-svr;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade $$http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_set_header Host $$host;
-                  proxy_set_header X-Real-IP $$remote_addr;
-                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Host $$http_host/doc-svr;
-                  proxy_set_header X-Forwarded-Proto $$the_scheme;
-              }
-
-              location / {
-                  proxy_pass http://connector;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade $$http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_set_header Host $$host;
-                  proxy_set_header X-Real-IP $$remote_addr;
-                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $$the_scheme;
-              }
-          }
-      }
-
 services:
-  onlyoffice-nginx:
-    image: nginx:alpine
-    container_name: onlyoffice-nginx
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:latest
+    container_name: onlyoffice-connector
     networks:
       - onlyoffice-net
     restart: unless-stopped
     ports:
-      - '9080:80'
-    configs:
-      - source: nginx_conf
-        target: /etc/nginx/nginx.conf
+      - '9080:10099'
+    command: ["--mode=server"]
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
+      - DOCUMENT_SERVER_SECRET=${JWT_SECRET}
+      - BASE_URL=http://onlyoffice-connector:10099
+      - DOC_SERVER_PATH=/doc-svr
+    volumes:
+      - /vol00:/vol00
+      - /vol1:/vol1
+      - /vol2:/vol2
     labels:
       watchcow.enable: "true"
       watchcow.display_name: "onlyoffice-fnos"
@@ -80,24 +35,7 @@ services:
       watchcow.editor.icon: "file://onlyoffice.png"
       watchcow.editor.no_display: "true"
     depends_on:
-      - onlyoffice-connector
       - onlyoffice-documentserver
-
-  onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:latest
-    container_name: onlyoffice-connector
-    networks:
-      - onlyoffice-net
-    restart: unless-stopped
-    environment:
-      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
-      - DOCUMENT_SERVER_SECRET=${JWT_SECRET}
-      - BASE_URL=http://onlyoffice-connector:10099
-      - DOC_SERVER_PATH=/doc-svr
-    volumes:
-      - /vol00:/vol00
-      - /vol1:/vol1
-      - /vol2:/vol2
 
   onlyoffice-documentserver:
     image: onlyoffice/documentserver:latest

@@ -1,0 +1,26 @@
+# 2026/01/16 14:46:23.492450 [TestProperty3_DocumentSaveIntegrity] [rapid] draw contentSize: 1
+# 2026/01/16 14:46:23.492455 [TestProperty3_DocumentSaveIntegrity] [rapid] draw byte: 0
+# 2026/01/16 14:46:23.492565 [TestProperty3_DocumentSaveIntegrity] [rapid] draw filename: "aaa.docx"
+# 2026/01/16 14:46:23.493255 [TestProperty3_DocumentSaveIntegrity] Expected error 0, got 1
+# 
+v0.4.8#1504208598947019886
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0

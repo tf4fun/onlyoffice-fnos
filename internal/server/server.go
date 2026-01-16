@@ -19,6 +19,12 @@ import (
 	"onlyoffice-fnos/web"
 )
 
+// contextKey is a type for context keys to avoid collisions
+type contextKey string
+
+// OriginalRemoteAddrKey is the context key for storing the original RemoteAddr
+const OriginalRemoteAddrKey contextKey = "originalRemoteAddr"
+
 // Server represents the HTTP server
 type Server struct {
 	router        *chi.Mux
@@ -69,6 +75,9 @@ func New(cfg *Config) *Server {
 	}
 
 	// Setup middleware
+	// IMPORTANT: CaptureOriginalRemoteAddr must be BEFORE RealIP
+	// so we can capture the original RemoteAddr for the proxy route
+	s.router.Use(CaptureOriginalRemoteAddr)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
 	s.router.Use(middleware.RequestID)
@@ -79,6 +88,25 @@ func New(cfg *Config) *Server {
 	s.setupRoutes()
 
 	return s
+}
+
+// CaptureOriginalRemoteAddr is a middleware that captures the original RemoteAddr
+// before the RealIP middleware modifies it. This is needed for the reverse proxy
+// to correctly set X-Forwarded-For headers.
+func CaptureOriginalRemoteAddr(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), OriginalRemoteAddrKey, r.RemoteAddr)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetOriginalRemoteAddr retrieves the original RemoteAddr from the request context.
+// If not found, it returns the current RemoteAddr.
+func GetOriginalRemoteAddr(r *http.Request) string {
+	if addr, ok := r.Context().Value(OriginalRemoteAddrKey).(string); ok {
+		return addr
+	}
+	return r.RemoteAddr
 }
 
 // setupRoutes configures all HTTP routes
@@ -99,6 +127,10 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/download", s.handleDownload)
 	s.router.Post("/callback", s.handleCallback)
 	s.router.Post("/convert", s.handleConvert)
+
+	// Document Server reverse proxy route
+	// Proxies requests from /doc-svr/* to the configured Document Server URL
+	s.router.Handle("/doc-svr/*", http.HandlerFunc(s.handleDocServerProxy))
 }
 
 // Router returns the chi router for testing

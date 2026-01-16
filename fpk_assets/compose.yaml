@@ -46,7 +46,7 @@ x-fnpack:
       {
         "stepTitle": "OnlyOffice 配置",
         "items": [
-          {"type": "tips", "helpText": "配置 JWT 密钥用于安全通信，外网域名用于 HTTPS 协议判断。"},
+          {"type": "tips", "helpText": "配置 JWT 密钥用于安全通信。"},
           {
             "type": "text",
             "helpText": "JWT 密钥，用于 Document Server 安全通信",
@@ -57,13 +57,6 @@ x-fnpack:
               {"required": true, "message": "此字段不能为空"},
               {"min": 16, "max": 64, "message": "长度应在16-64个字符之间"}
             ]
-          },
-          {
-            "type": "text",
-            "helpText": "外网域名后缀，用于判断 HTTPS（如 .example.com），留空则全部走 HTTP",
-            "field": "wizard_external_domain",
-            "label": "外网域名",
-            "initValue": ""
           }
         ]
       }
@@ -111,68 +104,22 @@ networks:
     name: onlyoffice-net
     driver: bridge
 
-configs:
-  nginx_conf:
-    content: |
-      worker_processes auto;
-      events { worker_connections 1024; }
-      http {
-          include       /etc/nginx/mime.types;
-          default_type  application/octet-stream;
-          sendfile        on;
-          keepalive_timeout  65;
-          map $$host $$is_external {
-              ~*${wizard_external_domain:-^$$}$$  1;
-              default                             0;
-          }
-          map $$is_external $$the_scheme {
-              1       https;
-              default http;
-          }
-          upstream doc-svr { server onlyoffice-doc-svr:80; }
-          upstream connector { server onlyoffice-connector:10099; }
-          server {
-              listen 80;
-              server_name _;
-              location /doc-svr/ {
-                  rewrite ^/doc-svr/(.*)$$ /$$1 break;
-                  proxy_pass http://doc-svr;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade $$http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_set_header Host $$host;
-                  proxy_set_header X-Real-IP $$remote_addr;
-                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Host $$http_host/doc-svr;
-                  proxy_set_header X-Forwarded-Proto $$the_scheme;
-              }
-              location / {
-                  proxy_pass http://connector;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade $$http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_set_header Host $$host;
-                  proxy_set_header X-Real-IP $$remote_addr;
-                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $$the_scheme;
-              }
-          }
-      }
-
 services:
-  onlyoffice-nginx:
-    image: nginx:alpine
-    container_name: onlyoffice-nginx
+  onlyoffice-connector:
+    image: xingheliufang/onlyoffice-fnos:main
+    container_name: onlyoffice-connector
     networks:
       - onlyoffice-net
     restart: unless-stopped
     ports:
-      - 9080:80
-    configs:
-      - source: nginx_conf
-        target: /etc/nginx/nginx.conf
+      - 9080:10099
+    command: ["--mode=server"]
+    environment:
+      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
+      - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
+      - BASE_URL=http://onlyoffice-connector:10099
+      - DOC_SERVER_PATH=/doc-svr
     depends_on:
-      - onlyoffice-connector
       - onlyoffice-documentserver
 
   onlyoffice-documentserver:
@@ -199,15 +146,3 @@ services:
       - /var/apps/docker-onlyoffice/shares/onlyoffice/lib:/var/lib/onlyoffice
       - /var/apps/docker-onlyoffice/shares/onlyoffice/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
       - /var/apps/docker-onlyoffice/shares/onlyoffice/fonts:/usr/share/fonts/truetype/custom
-
-  onlyoffice-connector:
-    image: xingheliufang/onlyoffice-fnos:main
-    container_name: onlyoffice-connector
-    networks:
-      - onlyoffice-net
-    restart: unless-stopped
-    environment:
-      - DOCUMENT_SERVER_URL=http://onlyoffice-doc-svr:80
-      - DOCUMENT_SERVER_SECRET=${wizard_jwt_secret}
-      - BASE_URL=http://onlyoffice-connector:10099
-      - DOC_SERVER_PATH=/doc-svr

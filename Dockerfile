@@ -9,8 +9,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o onlyoffice-connector ./cmd/server
+# Build binary from unified entry point
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o onlyoffice-connector ./cmd/connector
 
 # Final stage
 FROM alpine:latest
@@ -29,4 +29,5 @@ ENV DOCUMENT_SERVER_SECRET=""
 ENV BASE_URL=""
 ENV DOC_SERVER_PATH="/doc-svr"
 
-CMD ["./onlyoffice-connector", "-port", "10099"]
+# Run in server mode by default (for Docker deployment)
+CMD ["./onlyoffice-connector", "--mode=server", "--port=10099"]

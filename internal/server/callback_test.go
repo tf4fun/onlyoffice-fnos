@@ -49,7 +49,8 @@ func TestProperty3_DocumentSaveIntegrity(t *testing.T) {
 		defer mockDocServer.Close()
 
 		// Setup server components
-		fileService := file.NewService(tempDir, 0)
+		// Use empty basePath since we're using absolute paths in the test
+		fileService := file.NewService("", 0)
 		formatManager := format.NewManager()
 		jwtManager := jwt.NewManager()
 
@@ -75,8 +76,8 @@ func TestProperty3_DocumentSaveIntegrity(t *testing.T) {
 		}
 		reqBody, _ := json.Marshal(callbackReq)
 
-		// Send callback request
-		req := httptest.NewRequest("POST", "/callback?path="+filename, bytes.NewReader(reqBody))
+		// Send callback request - use the full path since file service expects absolute paths
+		req := httptest.NewRequest("POST", "/callback?path="+filePath, bytes.NewReader(reqBody))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 

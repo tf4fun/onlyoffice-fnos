@@ -98,7 +98,7 @@ docker compose up -d
 
 ```
 .
-├── cmd/server/          # 主程序入口
+├── cmd/connector/       # 统一入口点（支持 Server 和 CGI 双模式）
 ├── docker/              # Docker 部署配置
 │   ├── compose.yaml     # Docker Compose 编排文件
 │   └── .env.example     # 环境变量示例
@@ -119,10 +119,16 @@ docker compose up -d
 
 ```bash
 # 编译
-go build -o onlyoffice-connector ./cmd/server
+go build -o onlyoffice-connector ./cmd/connector
 
 # 运行测试
 go test ./...
+
+# 运行（Server 模式）
+./onlyoffice-connector --mode=server --port=10099
+
+# 运行（CGI 模式，默认）
+./onlyoffice-connector --mode=cgi
 ```
 
 ## 许可证
