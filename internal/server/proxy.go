@@ -50,8 +50,14 @@ func (s *Server) createDocServerProxy() http.Handler {
 		req.Host = targetURL.Host
 
 		// Set X-Forwarded-Host and X-Forwarded-Proto
+		// According to OnlyOffice documentation, X-Forwarded-Host should include /doc-svr path
+		// This matches the nginx configuration: proxy_set_header X-Forwarded-Host $http_host/doc-svr;
+		//
+		// In CGI mode: X-Forwarded-Host should be like "192.168.1.177:5666/cgi/ThirdParty/onlyoffice/index.cgi/doc-svr"
+		// In server mode: X-Forwarded-Host should be like "192.168.1.177:9080/doc-svr"
 		if originalHost != "" {
-			req.Header.Set("X-Forwarded-Host", originalHost)
+			forwardedHost := buildForwardedHost(originalHost, s.settings.DocServerPath)
+			req.Header.Set("X-Forwarded-Host", forwardedHost)
 		}
 		if originalProto != "" {
 			req.Header.Set("X-Forwarded-Proto", originalProto)
@@ -204,6 +210,26 @@ func getClientIP(req *http.Request) string {
 	}
 
 	return remoteAddr
+}
+
+// buildForwardedHost constructs the X-Forwarded-Host header value
+// In CGI mode, it uses DocServerPath which includes the full CGI prefix
+// In server mode, it simply appends /doc-svr to the host
+//
+// Examples:
+// - CGI mode: host="192.168.1.177:5666", docServerPath="192.168.1.177:5666/cgi/ThirdParty/onlyoffice/index.cgi/doc-svr"
+//   -> "192.168.1.177:5666/cgi/ThirdParty/onlyoffice/index.cgi/doc-svr"
+// - Server mode: host="192.168.1.177:9080", docServerPath="/doc-svr"
+//   -> "192.168.1.177:9080/doc-svr"
+func buildForwardedHost(host, docServerPath string) string {
+	// If DocServerPath is set and contains the host, use it directly
+	// This handles CGI mode where DocServerPath is like "192.168.1.177:5666/cgi/.../index.cgi/doc-svr"
+	if docServerPath != "" && strings.Contains(docServerPath, host) {
+		return docServerPath
+	}
+
+	// Otherwise, append /doc-svr to the host (server mode)
+	return host + "/doc-svr"
 }
 
 // handleDocServerProxy handles requests to /doc-svr/* and proxies them to Document Server
