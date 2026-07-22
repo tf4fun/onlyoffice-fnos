@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -85,8 +86,10 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	// Build download URL for the source file
 	downloadURL := s.buildDownloadURL(filePath)
 
-	// Generate unique key for conversion
-	conversionKey := fmt.Sprintf("convert_%s_%d", filePath, time.Now().UnixNano())
+	// Generate a stable, opaque key that changes when the source file changes.
+	keyMaterial := fmt.Sprintf("%s\x00%s\x00%d", filePath, fileInfo.ModTime.UTC().Format(time.RFC3339Nano), fileInfo.Size)
+	keyHash := sha256.Sum256([]byte(keyMaterial))
+	conversionKey := "convert-" + fmt.Sprintf("%x", keyHash[:])[:24]
 
 	// Build conversion request
 	convReq := &ConvertRequest{
@@ -195,10 +198,18 @@ func (s *Server) buildTargetPath(sourcePath, targetFormat string) string {
 // callConversionAPI calls the OnlyOffice conversion API
 func (s *Server) callConversionAPI(serverURL string, req *ConvertRequest, secret string) (string, error) {
 	// Build API URL
-	apiURL := strings.TrimSuffix(serverURL, "/") + "/ConvertService.ashx"
+	apiURL := strings.TrimSuffix(serverURL, "/") + "/converter"
 
-	// Marshal request
-	reqBody, err := json.Marshal(req)
+	// JWT_IN_BODY requires a body containing only the signed token.
+	requestBody := interface{}(req)
+	if req.Token != "" {
+		requestBody = struct {
+			Token string `json:"token"`
+		}{Token: req.Token}
+	}
+
+	// Marshal request body
+	reqBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -211,11 +222,6 @@ func (s *Server) callConversionAPI(serverURL string, req *ConvertRequest, secret
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
-
-	// Add JWT token to header if configured
-	if secret != "" && req.Token != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+req.Token)
-	}
 
 	// Send request
 	client := &http.Client{
